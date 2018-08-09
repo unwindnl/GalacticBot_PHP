@@ -26,9 +26,6 @@
 		"zulucrypto/stellar-api": "^0.6.3"
 	},
 	"require-dev": {},
-	"provide": {
-		"unwindnl\\GalacticBot": "1.0"
-	},
 	"suggest": {},
 	"autoload": {
 		"psr-4": {
