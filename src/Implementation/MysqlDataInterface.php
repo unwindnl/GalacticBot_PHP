@@ -169,7 +169,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 			if (!$result = $this->mysqli->query($sql))
 			{
-				throw new Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+				throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 			}
 
 			$row = $result->fetch_assoc();
@@ -209,7 +209,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		
 		if (!$result = $this->mysqli->query($sql))
 		{
-			throw new Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
 
 		while($row = $result->fetch_assoc())
@@ -242,7 +242,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		";
 	
 		if (!$result = $this->mysqli->query($sql))
-			throw new Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 
 		$row = $result->fetch_assoc();
 
@@ -270,7 +270,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		";
 	
 		if (!$result = $this->mysqli->query($sql))
-			throw new Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 
 		$row = $result->fetch_assoc();
 
@@ -295,7 +295,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		";
 	
 		if (!$result = $this->mysqli->query($sql))
-			throw new Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 
 		$row = $result->fetch_assoc();
 
@@ -330,7 +330,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	
 		if (!$result = $this->mysqli->query($sql))
 		{
-			throw new Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
 	}
 
@@ -367,7 +367,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	
 		if (!$result = $this->mysqli->query($sql))
 		{
-			throw new Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
 
 		$trade->setID($this->mysqli->insert_id);
@@ -404,7 +404,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	
 		if (!$result = $this->mysqli->query($sql))
 		{
-			throw new Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
 
 		$row = $result->fetch_assoc();
