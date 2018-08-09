@@ -1,6 +1,6 @@
 <h1 align="center">GalacticBot</h1>
 
-GalacticBot is a PHP 7.x library for creating trading bots on the Stellar platform..
+GalacticBot is a PHP 7.x library for creating trading bots on the Stellar platform.
 
 ## Installation
 
