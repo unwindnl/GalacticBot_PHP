@@ -40,6 +40,10 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	private function excludeLastTradeFromOffers(Array $offers)
 	{
 		$lastTrade = $this->getLastTrade();
+
+		if (!$lastTrade)
+			return;
+
 		$lastTradePrice = null;
 
 		$lastTradePrice = number_format(1/$lastTrade->getPrice(), 7);

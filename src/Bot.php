@@ -56,7 +56,15 @@ class Bot
 		$this->data = $settings->getDataInterface();
 		$this->data->loadForBot($this);
 
-		$this->lastProcessingTime = $this->data->get("lastProcessingTime") ? Time::fromString($this->data->get("lastProcessingTime")) : Time::now();
+		$this->lastProcessingTime = null;
+
+		if ($this->data->get("lastProcessingTime"))
+			$this->lastProcessingTime = Time::fromString($this->data->get("lastProcessingTime"));
+		else
+		{
+			$this->lastProcessingTime = Time::now();
+			$this->lastProcessingTime->subtract(1);
+		}
 
 		$this->shortTermSamples = $this->data->getS("shortTerm", $this->settings->getShortTermSampleCount());
 		$this->shortTermSaleSamples = $this->data->getS("shortTermSale", $this->settings->getShortTermSaleSampleCount());
@@ -191,13 +199,6 @@ class Bot
 		{
 			$tradeState = self::TRADE_STATE_BUFFERING;
 		}
-		/*
-		else if ($lastTrade && !$lastTrade->getIsFilledCompletely())
-		{
-			$this->data->logVerbose("Waiting for current trade to be filled completely.");
-			exit();
-		}
-		*/
 		else if ($sample === null)
 		{
 			$this->data->logWarning("No sample data received, not processing this timeframe.");
@@ -420,10 +421,8 @@ class Bot
 			// initial budget
 			return $this->settings->getBaseAssetInitialBudget();
 		}
-		else
-		{
-			exit("TODO: How did this happen? " . __FILE__ . " on line #" . __LINE__);
-		}
+
+		return null;
 	}
 
 	function buy(Time $processingTime)
