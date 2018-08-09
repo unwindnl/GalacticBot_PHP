@@ -41,13 +41,14 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	{
 		$lastTrade = $this->getLastTrade();
 
-		if (!$lastTrade)
-			return;
+		$lastTradePrice = 0;
+		$lastTradeAmount = 0;
 
-		$lastTradePrice = null;
-
-		$lastTradePrice = number_format(1/$lastTrade->getPrice(), 7);
-		$lastTradeAmount = number_format($lastTrade->getSellAmount(), 7);
+		if ($lastTrade)
+		{
+			$lastTradePrice = number_format(1/$lastTrade->getPrice(), 7);
+			$lastTradeAmount = number_format($lastTrade->getSellAmount(), 7);
+		}
 		
 		foreach($offers AS $bid)
 		{
