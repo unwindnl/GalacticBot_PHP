@@ -145,7 +145,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				$range = \GalacticBot\Time::getRange($lastDate, $isLastRecord ? $end : $date);
 
 				foreach($range AS $rangeDate) {
-					$price = (float)number_format($record->getAvg(), 7, '.', '');
+					$price = (float)number_format(($record->getLow()+$record->getHigh())/2, 7, '.', '');
 					$this->setT($rangeDate, "value", $price);
 				}
 

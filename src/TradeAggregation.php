@@ -66,13 +66,9 @@ class TradeAggregation extends \ZuluCrypto\StellarSdk\Model\RestApiModel
         if (isset($rawData['close_r'])) $this->closeR = [$rawData['close_r']['N'], $rawData['close_r']['D']];
     }
 
-    /**
-     * @return number
-     */
-    public function getAvg()
-    {
-        return $this->avg;
-    }
+    public function getAvg() { return $this->avg; }
+    public function getLow() { return $this->low; }
+    public function getHigh() { return $this->high; }
 
     /**
      * @return number
