@@ -1,0 +1,40 @@
+{
+	"name": "unwindnl/galacticbot",
+	"description": "Trade Bot Library for the Stellar platform.",
+	"keywords": [
+		"trade bot",
+		"library",
+		"stellar"
+	],
+	"homepage": "https://galacticbot.com/",
+	"type": "library",
+	"license": "ISC",
+	"authors": [
+		{
+			"name": "Fabian Kranen",
+			"email": "fabian@unwind.nl",
+			"homepage": "http://unwind.nl/"
+		},
+		{
+			"name": "Robert Kooij",
+			"email": "robert@unwind.nl",
+			"homepage": "http://unwind.nl/"
+		}
+	],
+	"require": {
+		"php": "^7.1",
+		"zulucrypto/stellar-api": "^0.6.3"
+	},
+	"require-dev": {},
+	"provide": {
+		"unwindnl\\GalacticBot": "1.0"
+	},
+	"suggest": {},
+	"autoload": {
+		"psr-4": {
+			"GalacticBot\\": "src"
+		}
+	},
+	"autoload-dev": {},
+	"scripts": {}
+}
