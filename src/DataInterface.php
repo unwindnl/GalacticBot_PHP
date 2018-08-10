@@ -13,6 +13,7 @@ interface DataInterface
 	function get($name, $defaultValue = null);
 	function set($name, $value);
 
+	function isSetting($name);
 	function getSetting($name, $defaultValue = null);
 	function setSetting($name, $value);
 

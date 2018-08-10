@@ -18,6 +18,13 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		}
 	}
 
+	function isSetting($name)
+	{
+		$value = $this->get("setting_" . $name);
+
+		return $value !== null;
+	}
+
 	function getSetting($name, $defaultValue = null)
 	{
 		$value = $this->get("setting_" . $name);
