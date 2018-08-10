@@ -119,7 +119,7 @@ class Bot
 			case self::TRADE_STATE_BUY_DELAY:					$label = "Delaying to buy"; break;
 			case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:		$label = "Negative trend, wait for bottom"; break;
 
-			case self::TRADE_STATE_SELL_WAIT:					$label = "Waiting for rise to buy"; break;
+			case self::TRADE_STATE_SELL_WAIT:					$label = "Waiting for rise to sell"; break;
 			case self::TRADE_STATE_SELL_DELAY:					$label = "Delaying to sell"; break;
 			case self::TRADE_STATE_SELL_WAIT_POSITIVE:			$label = "Holding, waiting for short above med"; break;
 			case self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT:	$label = "Delaying to sell (min profit%)"; break;
@@ -197,6 +197,10 @@ class Bot
 
 		if ($gotFullBuffers && $tradeState == self::TRADE_STATE_BUFFERING)
 			$tradeState = self::TRADE_STATE_NONE;
+		
+		// Waiting for trade to complete and is completed? Then wait for a new dip to buy in again
+		if ($tradeState == self::TRADE_STATE_SELL_WAIT_FOR_TRADES && $lastTrade->getIsFilledCompletely())
+			$tradeState = self::TRADE_STATE_DIP_WAIT;
 
 		if (!$gotFullBuffers)
 		{
@@ -277,6 +281,10 @@ class Bot
 							// Something went wrong, waiting to sell but we don't have anything to sell - can't be good
 							// A well, reset to normal state and see what happens :)
 							$tradeState = self::TRADE_STATE_NONE;
+						}
+						else if ($tradeState == self::TRADE_STATE_SELL_WAIT && !$lastTrade->getIsFilledCompletely())
+						{
+							// Bought in but order is not complete yet
 						}
 						else
 						{
@@ -414,9 +422,11 @@ class Bot
 
 				if ($previousTrade)
 					$budget += $previousTrade->getAmountRemaining();
-			
-				return $budget;
 			}
+			
+			//var_dump($lastTrade->getData(), $budget);
+
+			return $budget;
 		}
 		else if ($asset->getType() == $this->settings->getBaseAsset()->getType())
 		{
