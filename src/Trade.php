@@ -107,7 +107,7 @@ class Trade
 						"sellingAssetType" => $trade->getCounterAsset()->getType(),
 						"sellingAssetCode" => $trade->getCounterAsset()->getAssetCode(),
 
-						"sellingAmount" => $this->type == self::TYPE_BUY ? $trade->getCounterAmount() : $trade->getBoughtAmount(),
+						"sellingAmount" => $this->type == self::TYPE_BUY ? $trade->getCounterAmount() : $trade->getBaseAmount(),
 
 						"buyingAssetType" => $trade->getBaseAsset()->getType(),
 						"buyingAssetCode" => $trade->getBaseAsset()->getAssetCode(),
