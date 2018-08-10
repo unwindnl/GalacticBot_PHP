@@ -101,6 +101,74 @@ class Trade
 		$processedAt = Time::fromDateTime($this->getProcessedAt());
 		return $processedAt->getAgeInMinutes($time);
 	}
+	
+	function simulate($type, Bot $bot, Time $processingTime, \ZuluCrypto\StellarSdk\XdrModel\Asset $sellingAsset, $sellingAmount, \ZuluCrypto\StellarSdk\XdrModel\Asset $buyingAsset)
+	{
+		$price = $bot->getDataInterface()->getAssetValueForTime($processingTime);
+
+		$this->type = $type;
+		$this->offerID = "SIM_" . time();
+
+		$this->amountRemaining = 0;
+		$this->price = 1/$price;
+		$this->paidPrice = $this->price;
+		$this->fillPercentage = 100;
+		$this->state = self::STATE_FILLED;
+
+		$this->processedAt = $processingTime->toString();
+
+		$claimedOffers = Array();
+	
+		if ($type == self::TYPE_BUY)
+		{
+			$this->sellAmount = $sellingAmount;
+			$this->fee = 0.00001;
+			$this->spentAmount = $sellingAmount + $this->fee;
+
+			$claimedOffers[] = Array(
+				"offerID" => $this->offerID,
+
+				"sellingAssetType" => $buyingAsset->getType(),
+				"sellingAssetCode" => $buyingAsset->getAssetCode(),
+
+				"sellingAmount" => $this->sellAmount * $price,
+
+				"buyingAssetType" => $sellingAsset->getType(),
+				"buyingAssetCode" => $sellingAsset->getAssetCode(),
+			);
+		}
+		else
+		{
+			$this->sellAmount = $sellingAmount;
+			$this->fee = 0.00001;
+			$this->spentAmount = $sellingAmount + $this->fee;
+
+			$claimedOffers[] = Array(
+				"offerID" => $this->offerID,
+
+				"sellingAssetType" => $sellingAsset->getType(),
+				"sellingAssetCode" => $sellingAsset->getAssetCode(),
+
+				"sellingAmount" => $sellingAmount * (1/$price),
+
+				"buyingAssetType" => $buyingAsset->getType(),
+				"buyingAssetCode" => $buyingAsset->getAssetCode(),
+			);
+		}
+		
+		$this->boughtAmount = $claimedOffers[0]["sellingAmount"];
+
+		$this->claimedOffers = json_encode($claimedOffers);
+
+		//var_dump($this);
+		//exit();
+		
+		if ($type == self::TYPE_SELL)
+		{
+	//		var_dump($this);
+	//		exit();
+		}
+	}
 
 	function updateFromAPIForBot(StellarAPI $api, Bot $bot)
 	{
