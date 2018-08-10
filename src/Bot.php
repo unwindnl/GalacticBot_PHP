@@ -414,11 +414,9 @@ class Bot
 
 				if ($previousTrade)
 					$budget += $previousTrade->getAmountRemaining();
-			}
 			
-			//var_dump($lastTrade->getData(), $budget);
-
-			return $budget;
+				return $budget;
+			}
 		}
 		else if ($asset->getType() == $this->settings->getBaseAsset()->getType())
 		{
