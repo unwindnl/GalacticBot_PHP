@@ -1,0 +1,14 @@
+{
+    "name": "unwind/galacticbot/demo",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Fabian Kranen",
+            "email": "fabian@unwind.nl"
+        }
+    ],
+    "require": {
+        "unwindnl/galacticbot": "@dev",
+        "cocur/background-process": "^0.7.0"
+    }
+}
