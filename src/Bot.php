@@ -356,8 +356,8 @@ class Bot
 			}
 		}
 
-		$this->data->setT($time, "baseAssetAmount", $this->getAvailableBudgetForAsset($this->settings->getBaseAsset(), false));
-		$this->data->setT($time, "counterAssetAmount", $this->getAvailableBudgetForAsset($this->settings->getCounterAsset(), false));
+		$this->data->setT($time, "baseAssetAmount", $this->getCurrentBaseAssetBudget());
+		$this->data->setT($time, "counterAssetAmount", $this->getCurrentCounterAssetBudget());
 
 		$this->data->set("state", $state);
 		$this->data->set("tradeState", $tradeState);
@@ -371,6 +371,16 @@ class Bot
 		$this->data->save();
 			
 		return true;
+	}
+
+	function getCurrentBaseAssetBudget()
+	{
+		return $this->getAvailableBudgetForAsset($this->settings->getBaseAsset(), false);
+	}
+
+	function getCurrentCounterAssetBudget()
+	{
+		return $this->getAvailableBudgetForAsset($this->settings->getCounterAsset(), false);
 	}
 
 	function getAvailableBudgetForAsset($asset, $onlyFromLastTrade = true)
