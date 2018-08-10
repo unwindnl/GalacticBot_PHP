@@ -115,7 +115,7 @@ namespace GalacticBot;
 				$price->setDenominator(10  * $price->getDenominator());
 				$digits++;
 
-				if ($digits >= 9) {
+				if ($digits >= 7) {
 					$price->setNumerator(round($price->getNumerator()));
 					$price->setDenominator(round($price->getDenominator()));
 				}
