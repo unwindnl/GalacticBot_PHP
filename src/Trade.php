@@ -106,11 +106,11 @@ class Trade
 
 						"sellingAssetType" => $trade->getCounterAsset()->getType(),
 						"sellingAssetCode" => $trade->getCounterAsset()->getAssetCode(),
-						"sellingAmount" => $trade->getCounterAmount(),
+
+						"sellingAmount" => $this->type == self::TYPE_BUY ? $trade->getCounterAmount() : $trade->getBoughtAmount(),
 
 						"buyingAssetType" => $trade->getBaseAsset()->getType(),
 						"buyingAssetCode" => $trade->getBaseAsset()->getAssetCode(),
-						"buyingAmount" => $trade->getBaseAmount(),
 					);
 				}
 
@@ -136,16 +136,8 @@ class Trade
 
 			foreach($claimedOffers AS $offer)
 			{
-				if ($this->type == self::TYPE_BUY)
-				{
-					$this->boughtAmount += $offer->sellingAmount;
-					$amountLeft -= $offer->sellingAmount;
-				}
-				else
-				{
-					$this->boughtAmount += $offer->buyingAmount;
-					$amountLeft -= $offer->buyingAmount;
-				}
+				$this->boughtAmount += $offer->sellingAmount;
+				$amountLeft -= $offer->sellingAmount;
 			}
 			
 			$amountFulfilled = $amountTotal-$amountLeft;
