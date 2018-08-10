@@ -26,6 +26,8 @@ interface DataInterface
 	function getS($name, $maxLength);
 	function setS($name, Samples $value);
 
+	function clearAllExceptSampleDataAndSettings();
+
 	function addTrade(Trade $trade);
 	function getLastTrade();
 	function getLastCompletedTrade();

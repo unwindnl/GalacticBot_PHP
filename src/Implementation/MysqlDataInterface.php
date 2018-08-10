@@ -43,7 +43,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 	function setSetting($name, $value)
 	{
-		$this->set("setting_" . $name, $value);
+		$this->directSet("setting_" . $name, $value);
 	}
 
 	private function excludeLastTradeFromOffers(Array $offers)
@@ -203,23 +203,18 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 		return $price ? (float)number_format($price, 7, '.', '') : null;
 	}
-
-	function loadForBot(\GalacticBot\Bot $bot, $force = false)
+	
+	function clearAllExceptSampleDataAndSettings()
 	{
-		if ($this->bot && $this->bot->getSettings()->getID() == $bot->getSettings()->getID() && !$force)
-			return;
-
-		$this->data = [];
-		$this->changedData = [];
-		$this->sampleBuffers = [];
-		$this->bot = $bot;
+		// Make sure to clean our cache
+		$this->save();
 
 		$sql = "
-			SELECT	name,
-					value
-			FROM	BotData
+			DELETE FROM
+					BotData
 			WHERE	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
-				AND	date = '0000-00-00 00:00:00'
+				AND	name <> 'value'
+				AND	name NOT LIKE 'setting_%'
 		";
 		
 		if (!$result = $this->mysqli->query($sql))
@@ -227,22 +222,10 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
 
-		while($row = $result->fetch_assoc())
-		{
-			if (preg_match("/^SB_(.+?)$/", $row["name"], $matches))
-			{
-				$data = json_decode($row["value"]);
+		$this->sampleBuffers = [];
 
-				if (is_object($data))
-					$this->sampleBuffers[$matches[1]] = new \GalacticBot\Samples($data->maxLength, $data->samples);
-			}
-			else
-			{
-				$this->data[$row["name"]] = $row["value"];
-			}
-		}
-		
-		$this->bot->getSettings()->loadFromDataInterface();
+		// Reload (empty) data from database
+		$this->saveAndReload();
 	}
 
 	function getLastTrade()
@@ -432,8 +415,11 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 	function set($name, $value)
 	{
-		$this->data[$name] = $value;
-		$this->changedData[$name] = $name;
+		if (!isset($this->data[$name]) || $this->data[$name] != $value)
+		{
+			$this->data[$name] = $value;
+			$this->changedData[$name] = $name;
+		}
 	}
 
 	function directSet($name, $value)
@@ -520,6 +506,47 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	{
 	}
 
+	function loadForBot(\GalacticBot\Bot $bot, $force = false)
+	{
+		if ($this->bot && $this->bot->getSettings()->getID() == $bot->getSettings()->getID() && !$force)
+			return;
+
+		$this->data = [];
+		$this->changedData = [];
+		$this->sampleBuffers = [];
+		$this->bot = $bot;
+
+		$sql = "
+			SELECT	name,
+					value
+			FROM	BotData
+			WHERE	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+				AND	date = '0000-00-00 00:00:00'
+		";
+		
+		if (!$result = $this->mysqli->query($sql))
+		{
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+		}
+
+		while($row = $result->fetch_assoc())
+		{
+			if (preg_match("/^SB_(.+?)$/", $row["name"], $matches))
+			{
+				$data = json_decode($row["value"]);
+
+				if (is_object($data))
+					$this->sampleBuffers[$matches[1]] = new \GalacticBot\Samples($data->maxLength, $data->samples);
+			}
+			else
+			{
+				$this->data[$row["name"]] = $row["value"];
+			}
+		}
+		
+		$this->bot->getSettings()->loadFromDataInterface();
+	}
+
 	function saveAndReload()
 	{
 		$this->save();
@@ -550,7 +577,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				)
 			";
 
-			echo " --- updating setting $k\n";
+			//echo " --- updating '$k' to '$v'\n";
 			$this->mysqli->query($sql);
 		}
 
