@@ -1,0 +1,72 @@
+
+html, body {
+	background: white;
+	color: black;
+}
+
+html, body, textarea, td, th, input, select, button
+{
+	font-family: "IBM Plex Sans", helvetica, arial, sans-serif;
+	font-size: 14px;
+	line-height: 20px;
+}
+
+textarea, input, select, button
+{
+	color: #141414;
+}
+
+td, th {
+	padding-right: 10px;
+}
+
+h1, h2 {
+	color: black;
+	font-weight: bold;
+	font-size: 24px;
+	font-family: "IBM Plex Sans",helvetica,arial,sans-serif;
+	margin-top: 20px;
+	margin-bottom: 20px;
+}
+
+p {
+	margin-bottom: 20px;
+}
+
+td, th {
+	padding-bottom: 10px;
+}
+
+th {
+	font-weight: bold;
+	text-align: left;
+}
+
+input {
+	background: #eee !important;
+	color: #000 !important;
+	border: 1px solid #ddd !important;
+	padding: 4px !important;
+	margin: 2px !important;
+	line-height: 12px;
+	height: auto;
+}
+
+.inner {
+	margin-left: 20px;
+	margin-top: 20px;
+}
+
+a.button {
+	padding: 5px;
+	background: #777;
+	color: white;
+	border-radius: 5px;
+	text-decoration: none;
+}
+
+a.button:hover {
+	background: #33f;
+	color: #fff;
+}
+

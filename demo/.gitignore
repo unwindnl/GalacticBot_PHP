@@ -1,0 +1,8 @@
+composer.json
+.DS_Store
+*.swo
+*.swp
+composer.lock
+worker.json
+vendor/
+setup.php
