@@ -406,13 +406,14 @@ class Bot
 				}
 			}
 
-			$previousTrade = $this->data->getTradeByID($lastTrade->getPreviousBotTradeID());
-
-			$budget = $lastTrade->getBoughtAmount();
-
-			if ($previousTrade)
+			if ($lastTrade)
 			{
-				$budget += $previousTrade->getAmountRemaining();
+				$previousTrade = $this->data->getTradeByID($lastTrade->getPreviousBotTradeID());
+
+				$budget = $lastTrade->getBoughtAmount();
+
+				if ($previousTrade)
+					$budget += $previousTrade->getAmountRemaining();
 			}
 			
 			//var_dump($lastTrade->getData(), $budget);
