@@ -247,7 +247,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			WHERE	state NOT IN ('" . \GalacticBot\Trade::STATE_CANCELLED . "', '" . \GalacticBot\Trade::STATE_REPLACED . "')
 				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
-					createdAt DESC
+					processedAt DESC
 			LIMIT	1
 		";
 	
@@ -276,7 +276,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			WHERE	state = '" . \GalacticBot\Trade::STATE_FILLED . "'
 				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
-					createdAt DESC
+					processedAt DESC
 			LIMIT	1
 		";
 	
@@ -299,7 +299,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$list = [];
 
 		$limit = (int)$limit;
-		$order = "createdAt " . ($orderDesc ? "DESC" : "ASC");
+		$order = "processedAt " . ($orderDesc ? "DESC" : "ASC");
 
 		$sql = "
 			SELECT	*
@@ -504,7 +504,12 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			)
 		";
 
-		$this->mysqli->query($sql);
+		//echo $sql;
+
+		if (!$result = $this->mysqli->query($sql))
+		{
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+		}
 	}
 
 	function getS($name, $maxLength)
@@ -618,6 +623,8 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 					'" . $this->mysqli->real_escape_string(json_encode($jv)) . "'
 				)
 			";
+
+		//	echo " -- save sample buffer 'SB_" . $this->mysqli->real_escape_string($k) . "' = ".json_encode($jv)."\n";
 
 			$this->mysqli->query($sql);
 		}
