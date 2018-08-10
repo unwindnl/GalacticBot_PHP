@@ -98,8 +98,6 @@
 		All settings have prefilled default values.
 		<br />
 		Change any of the values and click on 'Save settings' to change the values in the database for this bot.
-		<br />
-		You will have to restart the bot for the changes to take effect.
 	</p>
 
 	<div class="pane">
