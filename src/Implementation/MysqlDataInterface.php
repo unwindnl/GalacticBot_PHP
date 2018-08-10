@@ -234,6 +234,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			SELECT	*
 			FROM	BotTrade
 			WHERE	state NOT IN ('" . \GalacticBot\Trade::STATE_CANCELLED . "', '" . \GalacticBot\Trade::STATE_REPLACED . "')
+				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
 					createdAt DESC
 			LIMIT	1
@@ -262,6 +263,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			SELECT	*
 			FROM	BotTrade
 			WHERE	state = '" . \GalacticBot\Trade::STATE_FILLED . "'
+				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
 					createdAt DESC
 			LIMIT	1
@@ -291,6 +293,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$sql = "
 			SELECT	*
 			FROM	BotTrade
+			WHERE	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
 					$order
 			LIMIT
@@ -319,6 +322,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			SELECT	*
 			FROM	BotTrade
 			WHERE	ID = " . $this->escapeSQLValue($ID) . "
+				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
 		";
 	
 		if (!$result = $this->mysqli->query($sql))
