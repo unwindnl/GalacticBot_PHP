@@ -195,6 +195,9 @@ class Bot
 		$this->data->logVerbose("- state = {$state}");
 		$this->data->logVerbose("- tradeState = {$tradeState}");
 
+		if ($gotFullBuffers && $tradeState == self::TRADE_STATE_BUFFERING)
+			$tradeState = self::TRADE_STATE_NONE;
+
 		if (!$gotFullBuffers)
 		{
 			$tradeState = self::TRADE_STATE_BUFFERING;
