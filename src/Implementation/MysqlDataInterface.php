@@ -8,6 +8,8 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	private $bot = null;
 
 	private $data = [];
+	private $changedData = [];
+
 	private $sampleBuffers = [];
 
 	function __construct($server, $user, $password, $database) {
@@ -202,12 +204,13 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		return $price ? (float)number_format($price, 7, '.', '') : null;
 	}
 
-	function loadForBot(\GalacticBot\Bot $bot)
+	function loadForBot(\GalacticBot\Bot $bot, $force = false)
 	{
-		if ($this->bot && $this->bot->getSettings()->getID() == $bot->getSettings()->getID())
+		if ($this->bot && $this->bot->getSettings()->getID() == $bot->getSettings()->getID() && !$force)
 			return;
 
 		$this->data = [];
+		$this->changedData = [];
 		$this->sampleBuffers = [];
 		$this->bot = $bot;
 
@@ -430,6 +433,31 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	function set($name, $value)
 	{
 		$this->data[$name] = $value;
+		$this->changedData[$name] = $name;
+	}
+
+	function directSet($name, $value)
+	{
+		$this->data[$name] = $value;
+
+		$sql = "
+			REPLACE INTO BotData
+			(
+				botID,
+				name,
+				date,
+				value
+			)
+			VALUES
+			(
+				'" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "',
+				'" . $this->mysqli->real_escape_string($name) . "',
+				'0000-00-00 00:00:00',
+				'" . $this->mysqli->real_escape_string($value) . "'
+			)
+		";
+
+		$this->mysqli->query($sql);
 	}
 
 	function getT(\GalacticBot\Time $time, $name)
@@ -492,10 +520,19 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	{
 	}
 
+	function saveAndReload()
+	{
+		$this->save();
+		
+		$this->loadForBot($this->bot, true);
+	}
+
 	function save()
 	{
-		foreach($this->data AS $k => $v)
+		foreach($this->changedData AS $k => $v)
 		{
+			$v = $this->data[$k];
+
 			$sql = "
 				REPLACE INTO BotData
 				(
@@ -513,6 +550,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				)
 			";
 
+			echo " --- updating setting $k\n";
 			$this->mysqli->query($sql);
 		}
 
@@ -541,6 +579,8 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 			$this->mysqli->query($sql);
 		}
+		
+		$this->changedData = [];
 	}
 
 	function logVerbose($what) {

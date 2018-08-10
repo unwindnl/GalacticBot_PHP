@@ -5,13 +5,16 @@ namespace GalacticBot;
 interface DataInterface
 {
 
-	function loadForBot(Bot $bot);
+	function loadForBot(Bot $bot, $force = false);
+
+	function saveAndReload();
 	function save();
 
 	function getAssetValueForTime(Time $time);
 
 	function get($name, $defaultValue = null);
 	function set($name, $value);
+	function directSet($name, $value);
 
 	function isSetting($name);
 	function getSetting($name, $defaultValue = null);
