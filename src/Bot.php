@@ -423,8 +423,7 @@ class Bot
 							$currentProfitPercentage -= 1;
 							$currentProfitPercentage *= 100;
 
-							// Short crossed long
-							$shortBelowLong = ($this->shortTermSaleValue <= $this->longTermValue);
+							$shortAboveLong = ($this->shortTermSaleValue >= $this->longTermValue);
 
 							$holdLongEnough = $lastCompletedTrade->getAgeInMinutes($time) >= $this->settings->getMinimumHoldMinutes();
 
@@ -478,7 +477,7 @@ class Bot
 									$tradeState = self::TRADE_STATE_DIP_WAIT;
 								}
 							}
-							else if (!$shortBelowLong)
+							else if (!$shortAboveLong)
 							{
 								$tradeState = self::TRADE_STATE_SELL_WAIT_POSITIVE;
 							}
@@ -543,6 +542,8 @@ class Bot
 					$caller = array_shift($caller);
 					$caller = $caller["file"] . " on line: #" . $caller["line"];
 
+					$this->data->save();
+
 					exit("TODO: How did this happen? Last trade type is invalid " . __FILE__ . " on line #" . __LINE__ . "\nCalled from: $caller\n");
 				}
 				else if (
@@ -553,6 +554,8 @@ class Bot
 					$caller = debug_backtrace(0);
 					$caller = array_shift($caller);
 					$caller = $caller["file"] . " on line: #" . $caller["line"];
+
+					$this->data->save();
 
 					exit("TODO: How did this happen? Last trade type is invalid " . __FILE__ . " on line #" . __LINE__ . "\nCalled from: $caller\n");
 				}
