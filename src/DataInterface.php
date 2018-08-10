@@ -28,6 +28,8 @@ interface DataInterface
 	function getTradeByID($ID);
 	function saveTrade(Trade $trade);
 
+	function getTrades($limit, $orderDesc);
+
 	function logVerbose($what);
 	function logWarning($what);
 	function logError($what);

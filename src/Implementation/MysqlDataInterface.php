@@ -288,6 +288,35 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		return null;
 	}
 
+	function getTrades($limit, $orderDesc)
+	{
+		$list = [];
+
+		$limit = (int)$limit;
+		$order = "createdAt " . ($orderDesc ? "DESC" : "ASC");
+
+		$sql = "
+			SELECT	*
+			FROM	BotTrade
+			ORDER BY
+					$order
+			LIMIT
+					$limit
+		";
+
+		if (!$result = $this->mysqli->query($sql))
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+
+		while(($row = $result->fetch_assoc())) {
+			$trade = new \GalacticBot\Trade();
+			$trade->setData($row);
+
+			$list[] = $trade;
+		}
+
+		return $list;
+	}
+	
 	function getTradeByID($ID)
 	{
 		if (!$ID)
