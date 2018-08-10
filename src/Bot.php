@@ -14,6 +14,7 @@ class Bot
 	const STATE_RUNNING							= "RUNNING";
 	const STATE_PAUSED							= "PAUSED";
 	const STATE_STOPPED							= "STOPPED";
+	const STATE_NEEDS_RESET						= "NEEDS_RESET";
 
 	const TRADE_STATE_NONE						= "";
 	const TRADE_STATE_BUFFERING					= "BUFFERING";
@@ -47,7 +48,12 @@ class Bot
 		
 	private $shortAboveMedium = null;
 	private $shortAboveLong = null;
-		
+	
+	private $shouldTrade = false;
+
+	// Time we're processing, see work() method
+	private $currentTime = null;
+
 	public function __construct(
 		Settings $settings
     )
@@ -77,6 +83,11 @@ class Bot
 		$this->shortAboveLong = $this->data->get("shortAboveLong") == 1;
 	}
 
+	public function getLastProcessingTime()
+	{
+		return new \DateTime($this->data->get("lastProcessingTime"));
+	}
+
 	public function getSettings()
 	{
 		return $this->settings;
@@ -87,20 +98,26 @@ class Bot
 		return $this->data;
 	}
 
-	public function work()
+	public function start()
 	{
-		$time = new Time($this->lastProcessingTime);
+		$this->data->directSet("state", self::STATE_RUNNING);
+	}
 
-		while(1) {
-			$sample = $this->data->getAssetValueForTime($time);
+	public function pause()
+	{
+		$this->data->directSet("state", self::STATE_PAUSED);
+	}
 
-			$hasRun = $this->process($time, $sample);
+	public function stop()
+	{
+		$this->data->directSet("state", self::STATE_STOPPED);
+	}
 
-			if ($time->isNow()) {
-				sleep(1);
-			} else {
-				$time->add(1);
-			}
+	public function simulationReset()
+	{
+		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
+		{
+			$this->data->directSet("state", self::STATE_NEEDS_RESET);
 		}
 	}
 
@@ -119,6 +136,7 @@ class Bot
 			case self::STATE_PAUSED:							$label = "Paused"; break;
 			case self::STATE_STOPPED:							$label = "Stopped"; break;
 
+			case self::STATE_NEEDS_RESET:						$label = "Waiting for reset to complete"; break;
 		}
 
 		return Array(
@@ -156,10 +174,94 @@ class Bot
 		);
 	}
 
+	public function getIsNotRunning()
+	{
+		$state = $this->data->get("state");
+		return !$state || $state == self::STATE_NONE || $state == self::STATE_STOPPED;
+	}
+
+	public function performFullReset()
+	{
+		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
+		{
+			$this->getDataInterface()->clearAllExceptSampleDataAndSettings();
+		
+			$aWeekAgo = Time::now();
+			$aWeekAgo->subtractWeeks(1);
+
+			$this->lastProcessingTime = new Time($aWeekAgo);
+			$this->data->set("lastProcessingTime", $aWeekAgo->toString());
+
+			$this->currentTime = new Time($aWeekAgo);
+		}
+
+		$this->data->set("state", self::STATE_RUNNING);
+		$this->data->save();
+	}
+
+	public function work()
+	{
+		$this->currentTime = new Time($this->lastProcessingTime);
+
+		$ticks = 0;
+
+		while(1) {
+			// always get the realtime value
+			$this->data->getAssetValueForTime(Time::now());
+
+			// get the value we need right now
+			$sample = $this->data->getAssetValueForTime($this->currentTime);
+
+			$hasRun = $this->process($this->currentTime, $sample);
+
+			if ($this->currentTime->isNow() || $this->getIsNotRunning()) {
+				sleep(1);
+
+				$ticks += 1/3;
+			} else {
+				$this->currentTime->add(1);
+
+				$ticks += 1/100;
+			}
+
+			if ($ticks >= 1)
+			{
+				// This will first save our changes and then load any changed settings or state
+				$this->data->saveAndReload();
+
+				$ticks = 0;
+			}
+		}
+	}
+
 	public function process(\GalacticBot\Time $time, $sample)
 	{
+		$state = $this->data->get("state");
+		$tradeState = $this->data->get("tradeState");
+
+		if ($state == self::STATE_NEEDS_RESET)
+		{
+			$this->performFullReset();
+
+			// return and start in the next iteration
+			return;
+		}
+
+		if ($this->getIsNotRunning())
+		{
+			$this->data->logVerbose("Stopped or not running, doing nothing.");
+			// Do nothing
+			return false;
+		}
+
+		$this->shouldTrade = true;
+
+		// Do all we have to do when paused, except for trading
+		if ($state == self::STATE_PAUSED)
+			$this->shouldTrade = false;
+
 		if (!$time->isAfter($this->lastProcessingTime)) {
-			$this->data->logVerbose("Already processed this timeframe (" . $time->toString() . ", lastProcessingTime = " . $this->lastProcessingTime->toString() . ")");
+			$this->data->logVerbose("Already processed this timeframe (" . $time->toString() . ")");
 			return false;
 		}
 
@@ -202,8 +304,6 @@ class Bot
 		$gotFullBuffers = $gotFullBuffers && $this->longTermSamples->getIsBufferFull();
 		$gotFullBuffers = $gotFullBuffers && $this->predictionBuffer->getIsBufferFull();
 
-		$state = $this->data->get("state");
-		$tradeState = $this->data->get("tradeState");
 		$startOfBuyDelayDate = $this->data->get("startOfBuyDelayDate") ? Time::fromString($this->data->get("startOfBuyDelayDate")) : null;
 
 		$lastTrade = $this->data->getLastTrade();
@@ -236,6 +336,9 @@ class Bot
 		}
 		else
 		{
+			//$this->buy($time);
+			//$this->sell($time);
+			
 			switch($tradeState)
 			{
 				case self::TRADE_STATE_DIP_WAIT:
@@ -275,9 +378,15 @@ class Bot
 										$tradeState = self::TRADE_STATE_NONE;
 										$startOfBuyDelayDate = null;
 										
-										$this->buy($time);
-
-										$tradeState = self::TRADE_STATE_SELL_WAIT;
+										if ($this->buy($time))
+										{
+											$tradeState = self::TRADE_STATE_SELL_WAIT;
+										}
+										else
+										{
+											$this->logWarning("Trade failed to create (this also happens when a bot is paused).");
+											$tradeState = self::TRADE_STATE_DIP_WAIT;
+										}
 									} else {
 										$tradeState = self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND;
 									}
@@ -319,7 +428,7 @@ class Bot
 
 							$holdLongEnough = $lastCompletedTrade->getAgeInMinutes($time) >= $this->settings->getMinimumHoldMinutes();
 
-							$gotEnoughProfit = $currentProfitPercentage < $this->settings->getMinimumProfitPercentage();
+							$gotEnoughProfit = $currentProfitPercentage >= $this->settings->getMinimumProfitPercentage();
 
 							if (
 								$tradeState == self::TRADE_STATE_SELL_WAIT_FOR_TRADES
@@ -334,9 +443,15 @@ class Bot
 								{
 									$this->data->logVerbose("Price has changed (was {$lastOrderPrice}, now: {$currentPrice}) since we submitted our offer but is still enough profit; so changing our current offer.");
 
-									$this->sell($time, $lastTrade);
-
-									$tradeState = self::TRADE_STATE_SELL_WAIT_FOR_TRADES;
+									if ($this->sell($time, $lastTrade))
+									{
+										$tradeState = self::TRADE_STATE_SELL_WAIT_FOR_TRADES;
+									}
+									else
+									{
+										$this->logWarning("Trade failed to create (this also happens when a bot is paused).");
+										$tradeState = self::TRADE_STATE_DIP_WAIT;
+									}
 								}
 								else if ($priceChanged)
 								{
@@ -353,9 +468,15 @@ class Bot
 							)
 							{
 								// Don't care about other conditions because they where previously met
-								$this->sell($time);
-
-								$tradeState = self::TRADE_STATE_SELL_WAIT_FOR_TRADES;
+								if ($this->sell($time))
+								{
+									$tradeState = self::TRADE_STATE_SELL_WAIT_FOR_TRADES;
+								}
+								else
+								{
+									$this->logWarning("Trade failed to create (this also happens when a bot is paused).");
+									$tradeState = self::TRADE_STATE_DIP_WAIT;
+								}
 							}
 							else if (!$shortBelowLong)
 							{
@@ -418,14 +539,22 @@ class Bot
 				&&	$lastTrade->getType() != Trade::TYPE_BUY
 				)
 				{
-					exit("TODO: How did this happen? Last trade type is invalid " . __FILE__ . " on line #" . __LINE__);
+					$caller = debug_backtrace(0);
+					$caller = array_shift($caller);
+					$caller = $caller["file"] . " on line: #" . $caller["line"];
+
+					exit("TODO: How did this happen? Last trade type is invalid " . __FILE__ . " on line #" . __LINE__ . "\nCalled from: $caller\n");
 				}
 				else if (
 					$asset->getType() == $this->settings->getBaseAsset()->getType()
 				&&	$lastTrade->getType() != Trade::TYPE_SELL
 				)
 				{
-					exit("TODO: How did this happen? Last trade type is invalid " . __FILE__ . " on line #" . __LINE__);
+					$caller = debug_backtrace(0);
+					$caller = array_shift($caller);
+					$caller = $caller["file"] . " on line: #" . $caller["line"];
+
+					exit("TODO: How did this happen? Last trade type is invalid " . __FILE__ . " on line #" . __LINE__ . "\nCalled from: $caller\n");
 				}
 			}
 			else
@@ -469,9 +598,20 @@ class Bot
 
 	function buy(Time $processingTime)
 	{
+		if (!$this->shouldTrade)
+			return null;
+
 		$budget = $this->getAvailableBudgetForAsset($this->settings->getBaseAsset());
 
-		$trade = $this->settings->getAPI()->manageOffer($this, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset());
+		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
+		{
+			$trade = new Trade();
+			$trade->simulate(Trade::TYPE_BUY, $this, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset());
+		}
+		else
+		{
+			$trade = $this->settings->getAPI()->manageOffer($this, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset());
+		}
 
 		$lastTrade = $this->data->getLastTrade();
 
@@ -486,7 +626,10 @@ class Bot
 
 	function cancel(Time $processingTime, Trade $trade)
 	{
-		$this->sell($processingTime, $trade, true);
+		if ($this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
+		{
+			$this->sell($processingTime, $trade, true);
+		}
 
 		$trade->setState(Trade::STATE_CANCELLED);
 		$this->data->saveTrade($trade);
@@ -494,11 +637,22 @@ class Bot
 
 	function sell(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false)
 	{
+		if (!$this->shouldTrade)
+			return null;
+
 		$budget = $this->getAvailableBudgetForAsset($this->settings->getCounterAsset());
 
 		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
 
-		$trade = $this->settings->getAPI()->manageOffer($this, $processingTime, $this->settings->getCounterAsset(), $budget, $this->settings->getBaseAsset(), $offerIDToUpdate, $cancelOffer);
+		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
+		{
+			$trade = new Trade();
+			$trade->simulate(Trade::TYPE_SELL, $this, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset());
+		}
+		else
+		{
+			$trade = $this->settings->getAPI()->manageOffer($this, $processingTime, $this->settings->getCounterAsset(), $budget, $this->settings->getBaseAsset(), $offerIDToUpdate, $cancelOffer);
+		}
 
 		if ($cancelOffer)
 		{
