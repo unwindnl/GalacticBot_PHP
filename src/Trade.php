@@ -51,6 +51,26 @@ class Trade
 	function getID() { return $this->ID; }
 	function setID($ID) { $this->ID = $ID; }
 
+	function getState() { return $this->state; }
+
+	function getStateInfo() {
+		$state = $this->getState();
+		$label = "Unknown state ($state)";
+
+		switch($state)
+		{
+			case self::STATE_CREATED:							$label = "Created"; break;
+			case self::STATE_REPLACED:							$label = "Replaced"; break;
+			case self::STATE_CANCELLED:							$label = "Cancelled"; break;
+			case self::STATE_FILLED:							$label = "Filled"; break;
+		}
+
+		return Array(
+			"state" => $state,
+			"label" => $label
+		);
+	}
+
 	function setState($state) { $this->state = $state; }
 
 	function setProcessedAt(\DateTime $date) { $this->processedAt = $date->format("Y-m-d H:i:s"); }
@@ -99,8 +119,6 @@ class Trade
 
 				foreach($offerInfo["trades"] AS $trade)
 				{
-					var_dump($trade);
-
 					$claimedOffers[] = Array(
 						"offerID" => $this->offerID,
 
