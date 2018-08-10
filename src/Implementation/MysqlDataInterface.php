@@ -222,6 +222,17 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
 
+		$sql = "
+			DELETE FROM
+					BotTrade
+			WHERE	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+		";
+		
+		if (!$result = $this->mysqli->query($sql))
+		{
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+		}
+
 		$this->sampleBuffers = [];
 
 		// Reload (empty) data from database
