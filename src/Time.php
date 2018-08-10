@@ -29,6 +29,11 @@ class Time
 		$this->dateTime->modify("-{$units} minutes");
 	}
 
+	function subtractWeeks($weeks)
+	{
+		$this->dateTime->modify("-{$weeks} weeks");
+	}
+
 	function toString()
 	{
 		return $this->dateTime->format("Y-m-d H:i:s");
