@@ -341,8 +341,17 @@ class Bot
 			
 			switch($tradeState)
 			{
-				case self::TRADE_STATE_DIP_WAIT:
 				case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:
+						if ($this->predictionDirection >= 0)
+						{
+							$tradeState = self::TRADE_STATE_DIP_WAIT;
+						}
+					break;
+			}
+					
+			switch($tradeState)
+			{
+				case self::TRADE_STATE_DIP_WAIT:
 						if ($this->shortTermValue < $this->longTermValue) {
 							$tradeState = self::TRADE_STATE_NONE;
 
