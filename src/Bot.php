@@ -13,7 +13,7 @@ class Bot
 	const STATE_NONE							= "";
 	const STATE_RUNNING							= "RUNNING";
 	const STATE_PAUSED							= "PAUSED";
-	const STATE_DONE							= "DONE";
+	const STATE_STOPPED							= "STOPPED";
 
 	const TRADE_STATE_NONE						= "";
 	const TRADE_STATE_BUFFERING					= "BUFFERING";
@@ -105,11 +105,33 @@ class Bot
 	}
 
 	public function getState() { return $this->data->get("state"); }
+
+	function getStateInfo() {
+		$state = $this->getState();
+		$label = "Unknown state ($state)";
+
+		switch($state)
+		{
+			case "":
+			case self::STATE_NONE:								$label = "Not started yet"; break;
+
+			case self::STATE_RUNNING:							$label = "Running"; break;
+			case self::STATE_PAUSED:							$label = "Paused"; break;
+			case self::STATE_STOPPED:							$label = "Stopped"; break;
+
+		}
+
+		return Array(
+			"state" => $state,
+			"label" => $label
+		);
+	}
+
 	public function getTradeState() { return $this->data->get("tradeState"); }
 
 	function getTradeStateInfo() {
 		$state = $this->getTradeState();
-		$label = "Unknown state";
+		$label = "Unknown state ($state)";
 
 		switch($state)
 		{
