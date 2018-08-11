@@ -541,12 +541,12 @@ class Bot
 
 		$sum = 0;
 
-		if ($lastTrade->getType() == Trade::TYPE_BUY)
+		if ($lastTrade->getType() == Trade::TYPE_SELL)
 			$sum += $this->getAvailableBudgetForAsset($this->settings->getBaseAsset(), false);
 		else
 			$sum += $lastTrade->getAmountRemaining() * $lastTrade->getPaidPrice();
 
-		return 0;
+		return $sum;
 	}
 
 	function getCurrentCounterAssetBudget()
