@@ -68,8 +68,8 @@
 	$bots = [];
 
 	// Add the live bot (ID: #1) to the bot list
-	$bots[$liveSettings->getID()] = new GalacticBot\Bot($liveSettings);
+	$bots[$liveSettings->getID()] = new GalacticBot\Implementation\EMABot($liveSettings);
 
 	// Add the simulation bot (ID: #2) to the bot list
-	$bots[$simulationSettings->getID()] = new GalacticBot\Bot($simulationSettings);
+	$bots[$simulationSettings->getID()] = new GalacticBot\Implementation\EMABot($simulationSettings);
 
