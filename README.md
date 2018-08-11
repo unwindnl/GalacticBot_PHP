@@ -25,9 +25,12 @@ Use ```composer require unwindnl/galacticbot``` to add this library to your PHP 
 
 # Demo
 
-This project contains a demo project of how to setup and run a bot with a minimal web interface to interact with the bot. Please see the demo/README.md folder for more information. A live demo is available on: https://www.galacticbot.com/libdemo/. We also created a custom view for the live bot on: https://www.galacticbot.com/demo/.
+This project contains a demo project of how to setup and run a bot with a minimal web interface to interact with the bot. Please see the demo/README.md folder for more information.
 
-## Todo 
+A live demo is available on: https://www.galacticbot.com/libdemo/.
+We also created an example of a custom (graphical) view for the live bot on: https://www.galacticbot.com/demo/.
 
-- Trustline check
+# Open issues 
+
+- You need to setup a trustline for the assets you want to trade with your Stellar account. The library will do this for you in the future.
 
