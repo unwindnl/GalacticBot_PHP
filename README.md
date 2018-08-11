@@ -33,5 +33,5 @@ We also created an example of a custom (graphical) view for the live bot on: htt
 
 # Open issues 
 
-- You need to setup a trustline for the assets you want to trade with your Stellar account. The library will do this for you in the future.
+- You need to setup a trustline for the assets you want to trade with your Stellar account. The library will do this for you in the future but for now you will have to do this yourself (with for example StellarTerm).
 
