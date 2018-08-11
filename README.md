@@ -2,9 +2,9 @@
 
 GalacticBot is a PHP 7.x library for creating trading bots on the Stellar platform.
 
-With GalacticBot you can run a bot with the example Exponential Moving Average (EMA) algorithm or create and test your own custom trading algorithm.
+With GalacticBot you can run bot(s) with our example algorithm or create and test your own custom trading algorithm(s).
 
-Bot can be run it locally on your machine, on a server or you could let us run it for you on https://www.galacticbot.com/ for a small fee (service will be available Q3 2018).
+Bots can be run it locally on your machine, on a server or you could let us run it for you on https://www.galacticbot.com/ for a small fee (service will be available Q3 2018).
 
 # Features
 
