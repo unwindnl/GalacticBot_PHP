@@ -25,7 +25,7 @@ Use ```composer require unwindnl/galacticbot``` to add this library to your PHP 
 
 # Demo
 
-This project contains a demo project of how to setup and run a bot with a minimal web interface to interact with the bot. Please see the demo/README.md folder for more information.
+This project contains a demo project of how to setup and run a bot with a minimal web interface to interact with the bot. Please see the demo/README.md [demo/README.md](demo/README.md) folder for more information.
 
 A live demo is available on: https://www.galacticbot.com/libdemo/.
 
