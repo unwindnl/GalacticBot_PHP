@@ -1,6 +1,8 @@
 <h1 align="center">GalacticBot</h1>
 
-GalacticBot is a PHP 7.x library for creating trading bots on the Stellar platform. With GalacticBot you can create own custom trading algorithm, use the example EMA algorithm and run it locally, on a server or let us run it for you on https://www.galacticbot.com/ (service will be available in a few weeks).
+GalacticBot is a PHP 7.x library for creating trading bots on the Stellar platform.
+
+With GalacticBot you can create own custom trading algorithm, use the example EMA algorithm and run it locally, on a server or let us run it for you on https://www.galacticbot.com/ (service will be available Q3 2018).
 
 # Features
 
