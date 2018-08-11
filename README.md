@@ -101,6 +101,10 @@ protected function process(\GalacticBot\Time $time, $sample)
 }
 ```
 
+# Warning
+
+Please not that this library is still under development. It is not advisable to trade with large amounts at this stage.
+
 # Open issues 
 
 - You need to setup a trustline for the assets you want to trade with your Stellar account. The library will do this for you in the future but for now you will have to do this yourself (with for example StellarTerm).
