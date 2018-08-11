@@ -526,12 +526,77 @@ class Bot
 
 	function getCurrentBaseAssetBudget()
 	{
-		return $this->getAvailableBudgetForAsset($this->settings->getBaseAsset(), false);
+		$lastTrade = $this->data->getLastCompletedTrade();
+
+		if (!$lastTrade)
+			return $this->settings->getBaseAssetInitialBudget();
+
+		$sum = 0;
+
+		if ($lastTrade->getType() == Trade::TYPE_BUY)
+			$sum += $this->getAvailableBudgetForAsset($this->settings->getBaseAsset(), false);
+		else
+			$sum += $lastTrade->getAmountRemaining() * $lastTrade->getPaidPrice();
+
+		return 0;
 	}
 
 	function getCurrentCounterAssetBudget()
 	{
-		return $this->getAvailableBudgetForAsset($this->settings->getCounterAsset(), false);
+		$lastTrade = $this->data->getLastCompletedTrade();
+
+		if (!$lastTrade)
+			return 0;
+
+		$sum = 0;
+
+		if ($lastTrade->getType() == Trade::TYPE_BUY)
+			$sum += $this->getAvailableBudgetForAsset($this->settings->getCounterAsset(), false);
+		else
+			$sum += $lastTrade->getAmountRemaining();
+
+		return $sum;
+	}
+
+	function getTotalHoldings()
+	{
+		$lastTrade = $this->data->getLastCompletedTrade();
+
+		if (!$lastTrade)
+			return $this->settings->getBaseAssetInitialBudget();
+		
+		$previousTrade = $lastTrade->getPreviousBotTradeID() ? $this->data->getTradeByID($lastTrade->getPreviousBotTradeID()) : null;
+
+		$sum = 0;
+
+		if ($lastTrade->getType() == Trade::TYPE_BUY)
+		{
+			$sum = $lastTrade->getBoughtAmount() * $lastTrade->getPaidPrice();
+
+			if ($previousTrade)
+			{
+				$sum += $previousTrade->getAmountRemaining();
+			}
+		}
+		else
+		{
+			$sum = $lastTrade->getBoughtAmount();
+
+			if ($previousTrade)
+			{
+				$sum += $previousTrade->getAmountRemaining() * $lastTrade->getPaidPrice();
+			}
+		}
+
+		return $sum;
+	}
+
+	function getProfitPercentage()
+	{
+		$start = $this->settings->getBaseAssetInitialBudget();
+		$current = $this->getTotalHoldings();
+
+		return (($current / $start) - 1) * 100;
 	}
 
 	function getAvailableBudgetForAsset($asset, $onlyFromLastTrade = true)
