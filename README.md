@@ -44,15 +44,15 @@ const TRADE_STATE_SELL_WAIT = "SELL_WAIT";
 
 Implement the following abstract methods:
 
-## protected function initialize()
+## initialize()
 
 Here you could load for example data from a database you going to need for your algorithm. This is only called once.
  
-## protected function getTradeStateLabel($forState)
+## getTradeStateLabel($forState)
 
 This is were you return a more descriptive text for each of your custom states you defined earlier.
  
-## protected function process(\GalacticBot\Time $time, $sample)
+## process(\GalacticBot\Time $time, $sample)
 
 A very minimal example:
 
