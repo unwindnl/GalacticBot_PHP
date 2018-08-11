@@ -549,8 +549,9 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		return $this->sampleBuffers[$name];
 	}
 
-	function setS($name, \GalacticBot\Samples $value)
+	function setS($name, \GalacticBot\Samples $buffer)
 	{
+		$this->sampleBuffers[$name] = $buffer;
 	}
 
 	function loadForBot(\GalacticBot\Bot $bot, $force = false)

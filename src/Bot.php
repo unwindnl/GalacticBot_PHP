@@ -268,18 +268,22 @@ class Bot
 		$this->data->logVerbose("Processing timeframe (" . $time->toString() . ")");
 
 		$this->shortTermSamples->add($sample);
+		$this->data->setS("shortTerm", $this->shortTermSamples);
 		$this->shortTermValue = $this->shortTermSamples->getExponentialMovingAverage();
 		$this->data->setT($time, "shortTermValue", $this->shortTermValue);
 
 		$this->shortTermSaleSamples->add($sample);
+		$this->data->setS("shortTermSale", $this->shortTermSaleSamples);
 		$this->shortTermSaleValue = $this->shortTermSaleSamples->getExponentialMovingAverage();
 		$this->data->setT($time, "shortTermSaleValue", $this->shortTermSaleValue);
 
 		$this->mediumTermSamples->add($sample);
+		$this->data->setS("mediumTerm", $this->mediumTermSamples);
 		$this->mediumTermValue = $this->mediumTermSamples->getExponentialMovingAverage();
 		$this->data->setT($time, "mediumTermValue", $this->mediumTermValue);
 
 		$this->longTermSamples->add($sample);
+		$this->data->setS("longTerm", $this->longTermSamples);
 		$this->longTermValue = $this->longTermSamples->getExponentialMovingAverage();
 		$this->data->setT($time, "longTermValue", $this->longTermValue);
 
@@ -808,6 +812,7 @@ class Bot
 		*/
 		
 		$this->data->setT($time, "predictionDirection", $this->predictionDirection);
+		$this->data->setS("prediction", $this->predictionBuffer);
 	}
 
 }
