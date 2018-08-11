@@ -31,6 +31,12 @@ A live demo is available on: https://www.galacticbot.com/libdemo/.
 
 We also created an example of a custom (graphical) view for the live bot on: https://www.galacticbot.com/demo/.
 
+# Data(base) abstraction
+
+The bot does not interact with a database directly but uses the ```DataInterface``` interface for describing how an implemention should look like.
+
+Please see the example ```MysqlDataInterface``` implementation of how to implement your own if you would want to interface with another database. This example implementation is not optimized and could slow down with more data in the database. So its best to clear our older data or optimize/create your own implementation. 
+
 # Implementing your own trading algorithm
 
 Create a class that extends the GalacticBot\Bot class.
