@@ -84,7 +84,7 @@ protected function process(\GalacticBot\Time $time, $sample)
 	}	
 	
 	if ($tradeState == self::TRADE_STATE_NONE || $tradeState == self::TRADE_STATE_BUY_WAIT)
-		if (time to buy)
+		if (time to buy / do something with $sample)
 		{
 			$this->buy();
 			$tradeState = self::TRADE_STATE_SELL_WAIT;
@@ -92,7 +92,7 @@ protected function process(\GalacticBot\Time $time, $sample)
 	}
 	else if ($tradeState == self::TRADE_STATE_SELL_WAIT)
 	{
-		if (time to sell)
+		if (time to sell / do something with $sample)
 		{
 			$this->sell();
 			$tradeState = self::TRADE_STATE_BUY_WAIT;
