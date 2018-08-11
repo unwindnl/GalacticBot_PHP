@@ -2,40 +2,28 @@
 
 GalacticBot is a PHP 7.x library for creating trading bots on the Stellar platform.
 
-## Installation
+# Features
 
-Package available on [Composer](https://packagist.org/packages/unwindnl/galacticbot).
+- An abstract bot class which you can extend to do your own trading logic
+- Bots can work on both the public net as the testnet on Stellar for testing
+- Bots can be run in realtime or as an simulation to test out bots and settings
+- Exponential Moving Average (EMA) bot implemention which is currently being live tested (see below for links)
 
-### PHP
+# Requirements
 
-min version 7.1
-no modules required
+- PHP version 7.1
+- No extra PHP modules are required 
+- MySQL is needed for running the demo EMA bot, but you could create an implementation for any other type of database
 
-### Database
+# Installation
 
-abstract interface class
+This package is available on [Composer](https://packagist.org/packages/unwindnl/galacticbot).
 
-mysql example implementation
-unoptimized
-installation
+Use ```composer require unwindnl/galacticbot``` to add this library to your PHP project.
 
-## Settings 
+# Demo
 
-## Workers 
-
-## Usage 
-
-This page will just show you the basics.
-
-```php
-echo $exampleCode;
-```
-
-## Bot abstraction
-
-## Demo EMA bot 
-
-## Custom bot
+This project contains a demo project of how to setup and run a bot with a minimal web interface to interact with the bot. Please see the demo/README.md folder for more information. A live demo is available on: https://www.galacticbot.com/libdemo/. We also created a custom view for the live bot on: https://www.galacticbot.com/demo/.
 
 ## Todo 
 
