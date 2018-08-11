@@ -31,7 +31,14 @@
 		{
 			$action = isset($_REQUEST["action"]) ? $_REQUEST["action"] : null;
 
-			if ($action == "update-settings")
+			if (defined("_ACTIONS_DISABLED") && _ACTIONS_DISABLED)
+			{
+				if ($action)
+				{
+					echo "<b style='color:red;'>All actions are disabled for this live demo.</b>";
+				}
+			}
+			else if ($action == "update-settings")
 			{
 				// Quick and dirty way of updating settings without any checks on the values!
 				foreach($_POST AS $k => $v)
@@ -86,5 +93,4 @@
 
 	// Page footer, and we're done!
 	include_once "templates/page.footer.php";
-
 
