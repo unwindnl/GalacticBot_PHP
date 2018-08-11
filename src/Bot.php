@@ -370,8 +370,15 @@ class Bot
 				case self::TRADE_STATE_NONE:
 				case self::TRADE_STATE_BUY_DELAY:
 				case "":
-						// Should buy?
-						if ($this->shortTermValue > $this->longTermValue && $this->shortTermSaleValue > $this->longTermValue)
+						if ($lastTrade && $lastTrade->getType() == Trade::TYPE_BUY)
+						{
+							// This is a temporary sanity check
+							// When the bot crashes for some reason and the latest state isn't saved
+							// We could end up here, we bought the counter asset but we're waiting to buy
+							// So we'll correct the stat here
+							$tradeState = self::TRADE_STATE_SELL_WAIT;
+						}
+						else if ($this->shortTermValue > $this->longTermValue && $this->shortTermSaleValue > $this->longTermValue) // Should buy?
 						{
 							if (!$startOfBuyDelayDate)
 								$startOfBuyDelayDate = clone $time;
@@ -509,6 +516,7 @@ class Bot
 
 		$this->data->setT($time, "baseAssetAmount", $this->getCurrentBaseAssetBudget());
 		$this->data->setT($time, "counterAssetAmount", $this->getCurrentCounterAssetBudget());
+		$this->data->setT($time, "totalHoldings", $this->getTotalHoldings());
 
 		$this->data->set("state", $state);
 		$this->data->set("tradeState", $tradeState);
