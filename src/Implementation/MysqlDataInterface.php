@@ -323,6 +323,33 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 		return $list;
 	}
+
+	function getTradeInTimeRange(\GalacticBot\Time $begin, \GalacticBot\Time $end)
+	{
+		$list = [];
+
+		$sql = "
+			SELECT	*
+			FROM	BotTrade
+			WHERE	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+				AND	processedAt >= '" . $this->mysqli->real_escape_string($begin->toString()) . "'
+				AND	processedAt < '" . $this->mysqli->real_escape_string($end->toString()) . "'
+			ORDER BY
+					processedAt ASC
+		";
+
+		if (!$result = $this->mysqli->query($sql))
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+
+		while(($row = $result->fetch_assoc())) {
+			$trade = new \GalacticBot\Trade();
+			$trade->setData($row);
+
+			$list[] = $trade;
+		}
+
+		return $list;
+	}
 	
 	function getTradeByID($ID)
 	{

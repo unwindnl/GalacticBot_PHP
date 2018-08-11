@@ -35,6 +35,7 @@ interface DataInterface
 	function saveTrade(Trade $trade);
 
 	function getTrades($limit, $orderDesc);
+	function getTradeInTimeRange(Time $begin, Time $end);
 
 	function logVerbose($what);
 	function logWarning($what);
