@@ -86,6 +86,7 @@ class Trade
 	function getSellAmount() { return $this->sellAmount; }
 	function getPaidPrice() { return $this->paidPrice; }
 	function getBoughtAmount() { return $this->boughtAmount; }
+	function getSpentAmount() { return $this->spentAmount; }
 	function getAmountRemaining() { return $this->amountRemaining; }
 
 	function getCreatedAt() { return new \DateTime($this->createdAt); }
