@@ -2,10 +2,22 @@
 
 namespace GalacticBot;
 
+/*
+* Abstract bot class.
+*
+* This is the class you will need to implement to create your own Bot algorithm. See the Implemention/ folder of this library for an example EMA bot.
+*/
 abstract class Bot
 {
 
+	/*
+	* Simulated bots do not trade.
+	*/
 	const SETTING_TYPE_SIMULATION				= "SIMULATION";
+
+	/*
+	* Live bots trade on both the test net as on the public net, you can choose on which in the settings class instance you provide to construct this class
+	*/
 	const SETTING_TYPE_LIVE						= "LIVE";
 
 	const STATE_NONE							= "";

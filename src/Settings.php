@@ -132,7 +132,7 @@ class Settings
 	public function getName() { return $this->name; }
 
 	/**
-	* Returns the Bot type (Bot::TYPE_LIVE or Bot::TYPE_SIMULATION)
+	* Returns the Bot type (Bot::SETTING_TYPE_SIMULATION or Bot::SETTING_TYPE_LIVE)
 	*
 	* @return String
 	*/
