@@ -21,6 +21,10 @@ Bots can be run it locally on your machine, on a server or you could let us run 
 - No extra PHP modules are required 
 - MySQL is needed for running the demo EMA bot, but you could create an implementation for any other type of database
 
+# Warning
+
+Please note that this library is still under development. It is not advisable to trade with large amounts at this stage.
+
 # Installation
 
 This package is available on [Composer](https://packagist.org/packages/unwindnl/galacticbot).
@@ -104,10 +108,6 @@ protected function process(\GalacticBot\Time $time, $sample)
 	}
 }
 ```
-
-# Warning
-
-Please note that this library is still under development. It is not advisable to trade with large amounts at this stage.
 
 # Open issues 
 
