@@ -4,6 +4,9 @@ namespace GalacticBot\Implementation;
 
 include_once dirname(__FILE__) . "/../HelperFunctions.php";
 
+/*
+* Demo Bot implemention which checks if different EMA (Exponential Moving Averages) lines to cross to see if it needs to buy or sell
+*/
 class EMABot extends \GalacticBot\Bot
 {
 
@@ -95,20 +98,8 @@ class EMABot extends \GalacticBot\Bot
 		$this->longTermValue = $this->longTermSamples->getExponentialMovingAverage();
 		$this->data->setT($time, "longTermValue", $this->longTermValue);
 
-		// Predict next values and determine the direction of the prediction
+		// "Predict" next values and determine the direction of the prediction
 		$this->predict($time);
-
-		// Signs
-		$shortAboveMedium = $this->shortTermValue > $this->mediumTermValue;
-		$shortAboveLong = $this->shortTermValue > $this->longTermValue;
-
-		$changed_sign_shortAboveMedium = $this->shortAboveMedium != $shortAboveMedium;
-		$changed_sign_shortAboveLong = $this->shortAboveLong != $shortAboveLong;
-
-		$this->shortAboveMedium = $shortAboveMedium;
-		$this->data->set("shortAboveMedium", $shortAboveMedium ? 1 : 0);
-		$this->shortAboveLong = $shortAboveLong;
-		$this->data->set("shortAboveLong", $shortAboveLong ? 1 : 0);
 
 		$gotFullBuffers = $this->shortTermSamples->getIsBufferFull();
 		$gotFullBuffers = $gotFullBuffers && $this->shortTermSaleSamples->getIsBufferFull();
@@ -148,9 +139,6 @@ class EMABot extends \GalacticBot\Bot
 		}
 		else
 		{
-			//$this->buy($time);
-			//$this->sell($time);
-			
 			switch($tradeState)
 			{
 				case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:
@@ -341,9 +329,6 @@ class EMABot extends \GalacticBot\Bot
 	{
 		$mediumTermSamplesArray = $this->mediumTermSamples->getArray();
 
-		// Test array
-		// $mediumTermSamplesArray = []; for($i=0; $i<30; $i++) { $mediumTermSamplesArray[] = $i+1; }
-
 		$first = $mediumTermSamplesArray[0];
 		$last = $mediumTermSamplesArray[count($mediumTermSamplesArray)-1];
 
@@ -367,17 +352,7 @@ class EMABot extends \GalacticBot\Bot
 		}
 
 		$this->predictionDirection = \GalacticBot\forecast_direction($mediumTermSamplesArray, $this->predictionBuffer->getArray(), $this->settings->getPrognosisWindowMinutes() * 0.5, $this->settings->getPrognosisWindowMinutes());
-		
-		/*
-		var_dump("mediumTermSamplesArray = ", $mediumTermSamplesArray, "einde");
-		echo "\n\n";
-		var_dump("first = $first");
-		var_dump("last = $last");
-		var_dump($this->predictionBuffer);
-		var_dump($this->predictionDirection);
-		exit();
-		*/
-		
+	
 		$this->data->setT($time, "predictionDirection", $this->predictionDirection);
 		$this->data->setS("prediction", $this->predictionBuffer);
 	}

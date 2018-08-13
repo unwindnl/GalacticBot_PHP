@@ -2,6 +2,9 @@
 
 namespace GalacticBot;
 
+/*
+* Time class used for the Bot processing, currently the time is in units of minutes. So one timeframe for the bot is one minute.
+*/
 class Time
 {
 

@@ -2,6 +2,9 @@
 
 namespace GalacticBot;
 
+/*
+* A Trade is an offering of an asset which is fulfilled or is not fulfilled.
+*/
 class Trade
 {
 
