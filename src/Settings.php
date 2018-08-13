@@ -224,7 +224,7 @@ class Settings
 	{
 		$value = isset($settings[$name]) ? $settings[$name] : $defaultValue;
 
-		@unset($settings[$name]);
+		unset($settings[$name]);
 
 		return $value;
 	}

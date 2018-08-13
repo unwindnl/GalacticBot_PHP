@@ -2,6 +2,9 @@
 
 namespace GalacticBot;
 
+/*
+* Sample buffer class, holds an array of collected samples (prices) and can do calculations on the values.
+*/
 class Samples
 {
 
@@ -9,48 +12,79 @@ class Samples
 
 	private $samples = Array();
 
+	/*
+	* @param int $maxLength maximum number of samples you want to keep
+	* @param Array of samples
+	*/
 	function __construct($maxLength, $samples = Array())
 	{
 		$this->maxLength = $maxLength;
 		$this->samples = $samples;
 	}
 
+	/*
+	* Adds an sample to the buffer and caps the buffer if it's getting too long
+	*/
 	function add($value) {
 		$this->samples[] = $value;
 
 		$this->samples = array_slice($this->samples, -$this->maxLength);
 	}
 
+	/*
+	* Returns the maximum length of this buffer
+	*/
 	function getMaxLength()
 	{
 		return $this->maxLength;
 	}
 
+	/*
+	* Returns the current length of this buffer
+	*/
 	function getLength()
 	{
 		return count($this->samples);
 	}
 
+	/*
+	* Changes the maximum length of this buffer
+	*/
 	function setMaxLength($maxLength)
 	{
 		$this->maxLength = $maxLength;
 	}
 
+	/*
+	* Returns the sample buffer array
+	* @return Array
+	*/
 	function getArray()
 	{
 		return $this->samples;
 	}
 
+	/*
+	* Clears the sample buffer
+	*/
 	function clear()
 	{
 		$this->samples = [];
 	}
 
+	/*
+	* Checks to see if the buffer is full or not
+	* @return bool
+	*/
 	function getIsBufferFull()
 	{
 		return count($this->samples) == $this->maxLength;
 	}
 
+	/*
+	* Returns the average value of all values in the buffer
+	* @return float or false when no data is present
+	*/
 	function getAverage() {
 		if (!count($this->samples))
 			return false;
@@ -64,9 +98,7 @@ class Samples
 	}
 
 	/**
-	* Source: https://github.com/markrogoyski/math-php/blob/master/src/Statistics/Average.php
-	*
-	* Exponential moving average (EMA)
+	* Exponential moving average (EMA) - Source: https://github.com/markrogoyski/math-php/blob/master/src/Statistics/Average.php
 	*
 	* The start of the EPA is seeded with the first data point.
 	* Then each day after that:
@@ -75,7 +107,7 @@ class Samples
 	*   where
 	*    α: coefficient that represents the degree of weighting decrease, a constant smoothing factor between 0 and 1.
 	*
-	* @return array of exponential moving averages
+	* @return Array of exponential moving averages
 	*/
 	function getExponentialMovingAverage() {
 		$n = count($this->samples)/2;
