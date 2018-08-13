@@ -3,10 +3,10 @@
 namespace GalacticBot;
 
 /*
- * These are just quick and dirty implementations of missing functionality in the Stellar PHP API (zulucrypto/stellar-api).
- * TODO: This code has to be replaced by a proper implementation.
- */
- 
+* These are just quick and dirty implementations of missing functionality in the Stellar PHP API (zulucrypto/stellar-api).
+*
+* TODO: This code has to be replaced by a proper implementation.
+*/
 class Offer extends \ZuluCrypto\StellarSdk\Model\RestApiModel
 {
     protected $ID;
@@ -37,6 +37,11 @@ class Offer extends \ZuluCrypto\StellarSdk\Model\RestApiModel
 
 }
 
+/*
+* These are just quick and dirty implementations of missing functionality in the Stellar PHP API (zulucrypto/stellar-api).
+*
+* TODO: This code has to be replaced by a proper implementation.
+*/
 class ExtendedAccount extends \ZuluCrypto\StellarSdk\Model\Account
 {
 	

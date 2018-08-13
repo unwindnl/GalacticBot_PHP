@@ -3,12 +3,12 @@
 namespace GalacticBot;
 
 /*
- * These are just quick and dirty implementations of missing functionality in the Stellar PHP API (zulucrypto/stellar-api).
- * TODO: This code has to be replaced by a proper implementation.
- */
- 
- class ExtendedServer extends \ZuluCrypto\StellarSdk\Server
- {
+* These are just quick and dirty implementations of missing functionality in the Stellar PHP API (zulucrypto/stellar-api).
+*
+* TODO: This code has to be replaced by a proper implementation.
+*/
+class ExtendedServer extends \ZuluCrypto\StellarSdk\Server
+{
 
 	function __construct(\ZuluCrypto\StellarSdk\Server $server, $isTestnet) {
 		$this->setApiClient($server->getApiClient());
