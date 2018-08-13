@@ -2,6 +2,9 @@
 
 namespace GalacticBot\Implementation;
 
+/*
+* Demo MySQL data interface implemention with some form of caching. This should and could be further optimized.
+*/
 class MysqlDataInterface implements \GalacticBot\DataInterface
 {
 
@@ -80,6 +83,11 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		return null;
 	}
 
+	/*
+	* Figure out what the price for an asset is on a specific time.
+	*
+	* TODO: This isn't the best place for this method, shouldn't this be a task of the Bot implementation?
+	*/
 	function getAssetValueForTime(\GalacticBot\Time $time)
 	{
 		$baseAsset = $this->bot->getSettings()->getBaseAsset();
@@ -110,9 +118,6 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				if ($price !== null)
 					$samples->add($price);
 			}
-
-		//	var_dump($samples);
-		//	exit();
 
 			if ($samples->getLength() > 0) {
 				$price = (float)number_format($samples->getAverage(), 7, '.', '');
@@ -651,8 +656,6 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 					'" . $this->mysqli->real_escape_string(json_encode($jv)) . "'
 				)
 			";
-
-		//	echo " -- save sample buffer 'SB_" . $this->mysqli->real_escape_string($k) . "' = ".json_encode($jv)."\n";
 
 			$this->mysqli->query($sql);
 		}
