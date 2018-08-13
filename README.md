@@ -107,7 +107,7 @@ protected function process(\GalacticBot\Time $time, $sample)
 
 # Warning
 
-Please not that this library is still under development. It is not advisable to trade with large amounts at this stage.
+Please note that this library is still under development. It is not advisable to trade with large amounts at this stage.
 
 # Open issues 
 
