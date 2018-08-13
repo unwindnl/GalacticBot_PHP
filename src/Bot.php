@@ -14,16 +14,29 @@ abstract class Bot
 	const STATE_STOPPED							= "STOPPED";
 	const STATE_NEEDS_RESET						= "NEEDS_RESET";
 
+	/*
+	* Default trade state, you will have to define your own trade states in your bot implementation
+	*/
 	const TRADE_STATE_NONE						= "";
 
-	protected $settings = null;
-	protected $data = null;
+	protected $settings;
+	protected $data;
 
+	/**
+	* Is false when the bot is paused (but will still process data)
+	*/
 	private $shouldTrade = false;
 
-	// Time we're processing, see work() method
+	/**
+	* Time we're processing, see work() method
+	*/
 	private $currentTime = null;
 
+	/**
+	* Constructs a new bot instance.
+	*
+	* @param Settings $settings An instance of the Settings class, please make sure to give each bot instance it's own settings class instance and not a copy/the same
+	*/
 	public function __construct(
 		Settings $settings
     )
@@ -45,42 +58,94 @@ abstract class Bot
 		$this->initialize();
 	}
 
+	/**
+	* Initialize your bot here.
+	*
+	* For example the EMABot loads all sample arrays from the database to a local SampleBuffer instance.
+	*
+	* @return void
+	*/
 	abstract protected function initialize();
 
+	/**
+	* Return a description for any custom tradeStates you define.
+	*
+	* @return string or null
+	*/
 	abstract public function getTradeStateLabel($forState);
 
+	/**
+	* This is where the real bot processing happens. This is where you implement your trading algorithm.
+	*
+	* @return void
+	*/
 	abstract protected function process(\GalacticBot\Time $time, $sample);
 
+	/**
+	* Returns last fully processed date & time.
+	*
+	* @return DateTime
+	*/
 	public function getLastProcessingTime()
 	{
 		return new \DateTime($this->data->get("lastProcessingTime"));
 	}
 
+	/**
+	* Returns the settings instance used for this bot instance.
+	*
+	* @return Settings
+	*/
 	public function getSettings()
 	{
 		return $this->settings;
 	}
 
+	/**
+	* Returns the data(base) interface instance used for this bot instance.
+	*
+	* @return Settings
+	*/
 	public function getDataInterface()
 	{
 		return $this->data;
 	}
 
+	/**
+	* Sets the bot state to 'should be running'. For this to take affect the bot should be running (see the demo for a worker script).
+	*
+	* @return void
+	*/
 	public function start()
 	{
 		$this->data->directSet("state", self::STATE_RUNNING);
 	}
 
+	/**
+	* Sets the bot state to 'should pause'. For this to take affect the bot should be running (see the demo for a worker script).
+	*
+	* @return void
+	*/
 	public function pause()
 	{
 		$this->data->directSet("state", self::STATE_PAUSED);
 	}
 
+	/**
+	* Sets the bot state to 'should stop'.
+	*
+	* @return void
+	*/
 	public function stop()
 	{
 		$this->data->directSet("state", self::STATE_STOPPED);
 	}
 
+	/**
+	* Sets the bot state to 'should reset'. For this to take affect the bot should be running (see the demo for a worker script). See the performFullReset method for more information.
+	*
+	* @return void
+	*/
 	public function simulationReset()
 	{
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
@@ -89,8 +154,18 @@ abstract class Bot
 		}
 	}
 
+	/**
+	* Returns the current state the Bot is in. Value must be one of defined STATE_ constants.
+	*
+	* @return string
+	*/
 	public function getState() { return $this->data->get("state"); }
 
+	/**
+	* Returns the current state as an array with "state" and "label" (which is a description of the state).
+	*
+	* @return Array
+	*/
 	function getStateInfo() {
 		$state = $this->getState();
 		$label = "Unknown state ($state)";
@@ -113,8 +188,18 @@ abstract class Bot
 		);
 	}
 
+	/**
+	* Returns the current trade state the Bot is in. Value must be one of defined TRADE_STATE_ constants in this class or from the implemented Bot instance.
+	*
+	* @return string
+	*/
 	public function getTradeState() { return $this->data->get("tradeState"); }
 
+	/**
+	* Returns the current trade state as an array with "state" and "label" (which is a description of the trade state).
+	*
+	* @return Array
+	*/
 	function getTradeStateInfo() {
 		$state = $this->getTradeState();
 		$label = "Unknown state ($state)";
@@ -127,13 +212,25 @@ abstract class Bot
 		);
 	}
 
-	public function getIsNotRunning()
+	/**
+	* Determines if the Bot should run.
+	*
+	* @return bool
+	*/
+	public function getShouldNotProcess()
 	{
 		$state = $this->data->get("state");
 		return !$state || $state == self::STATE_NONE || $state == self::STATE_STOPPED;
 	}
 
-	public function performFullReset()
+	/**
+	* Resets the bot data for a simulated bot.
+	*
+	* This method will ask the data interface instance to erase all data from the database for this bot, except for collected sample data (historical prices - which are needed for a simulation to be run).
+	*
+	* @return void
+	*/
+	private function performFullReset()
 	{
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
 		{
@@ -152,6 +249,13 @@ abstract class Bot
 		$this->data->save();
 	}
 
+	/**
+	* The work loop which will loop forever when called.
+	*
+	* This will take care of getting the current/historical price and calls the bots _process method when needed.
+	*
+	* @return void
+	*/
 	public function work()
 	{
 		$this->currentTime = new Time($this->lastProcessingTime);
@@ -167,7 +271,7 @@ abstract class Bot
 
 			$hasRun = $this->_process($this->currentTime, $sample);
 
-			if ($this->currentTime->isNow() || $this->getIsNotRunning()) {
+			if ($this->currentTime->isNow() || $this->getShouldNotProcess()) {
 				sleep(1);
 
 				$ticks += 1/3;
@@ -187,6 +291,11 @@ abstract class Bot
 		}
 	}
 
+	/**
+	* Calls the bots implemented method process() method after checking the timeframe hasnt been processed before.
+	*
+	* @return boolean
+	*/
 	public function _process(\GalacticBot\Time $time, $sample)
 	{
 		$state = $this->data->get("state");
@@ -200,7 +309,7 @@ abstract class Bot
 			return;
 		}
 
-		if ($this->getIsNotRunning())
+		if ($this->getShouldNotProcess())
 		{
 			$this->data->logVerbose("Stopped or not running, doing nothing.");
 			// Do nothing
@@ -230,6 +339,11 @@ abstract class Bot
 		return true;
 	}
 
+	/**
+	* Returns total amount this Bot has in the base asset.
+	*
+	* @return float
+	*/
 	function getCurrentBaseAssetBudget()
 	{
 		$lastTrade = $this->data->getLastCompletedTrade();
@@ -247,6 +361,11 @@ abstract class Bot
 		return $sum;
 	}
 
+	/**
+	* Returns total amount this Bot has in the counter asset.
+	*
+	* @return float
+	*/
 	function getCurrentCounterAssetBudget()
 	{
 		$lastTrade = $this->data->getLastCompletedTrade();
@@ -264,6 +383,11 @@ abstract class Bot
 		return $sum;
 	}
 
+	/**
+	* Returns a sum of total holdings converted to the base asset.
+	*
+	* @return float
+	*/
 	function getTotalHoldings()
 	{
 		$lastTrade = $this->data->getLastCompletedTrade();
@@ -297,6 +421,11 @@ abstract class Bot
 		return $sum;
 	}
 
+	/**
+	* Calculates how much profit this bot has made since it started.
+	*
+	* @return float
+	*/
 	function getProfitPercentage()
 	{
 		$start = $this->settings->getBaseAssetInitialBudget();
@@ -305,6 +434,11 @@ abstract class Bot
 		return (($current / $start) - 1) * 100;
 	}
 
+	/**
+	* Calculates how much this bot holds, and thus can be traded with, for a specific asset.
+	*
+	* @return float
+	*/
 	function getAvailableBudgetForAsset($asset, $onlyFromLastTrade = true)
 	{
 		$lastTrade = $this->data->getLastCompletedTrade();
@@ -379,6 +513,11 @@ abstract class Bot
 		return null;
 	}
 
+	/**
+	* Tries to trade the base asset for the counter asset at the current price.
+	*
+	* @return Trade or null
+	*/
 	function buy(Time $processingTime)
 	{
 		if (!$this->shouldTrade)
@@ -407,6 +546,11 @@ abstract class Bot
 		return $trade;
 	}
 
+	/**
+	* Cancels any open Trade (buy or sell).
+	*
+	* @return void
+	*/
 	function cancel(Time $processingTime, Trade $trade)
 	{
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
@@ -418,6 +562,11 @@ abstract class Bot
 		$this->data->saveTrade($trade);
 	}
 
+	/**
+	* Tries to trade the counter asset for the base asset at the current price.
+	*
+	* @return Trade or null
+	*/
 	function sell(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false)
 	{
 		if (!$this->shouldTrade)

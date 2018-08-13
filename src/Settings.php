@@ -2,6 +2,10 @@
 
 namespace GalacticBot;
 
+/**
+* Parses and loads Bot settings.
+*/
+// Todo: get the EMA bot settings away from here and to the EMABot class
 class Settings
 {
 	
@@ -16,32 +20,65 @@ class Settings
 	// Name of bot
 	private $name = null;
 
-	// Nameddsdgsdsg
+	// Base asset (usually XLM / native)
 	private $baseAsset = null;
 	private $baseAssetInitialBudget = null;
+
+	// Counter asset, for example MOBI
 	private $counterAsset = null;
 
+	// StellarAPI class instance
 	private $API = null;
+
+	// Secret of the Stellar account we're trading on
 	private $accountSecret = null;
 	
-	// Nameddsdgsdsg
+	/*
+	* How long to wait before buying, after all checks for buying have passed
+	*/
 	private $buyDelayMinutes = null;
 			
-	// Nameddsdgsdsg
+	/*
+	* How long to hold the counter asset at minimum before even checking if we need to sell
+	*/
 	private $minimumHoldMinutes = null;
 		
-	// Nameddsdgsdsg
+	/*
+	* How long in minutes we should try to predict the price
+	*/
 	private $prognosisWindowMinutes = null;
 		
-	// Nameddsdgsdsg
+	/*
+	* How much profit we want at minimum, doesn't sell if this percentage isn't met
+	*/
 	private $minimumProfitPercentage = null;
 		
-	// Nameddsdgsdsg
+	/*
+	* How many samples are taken for the short term (buy in) EMA
+	*/
 	private $shortTermSampleCount = null;
+		
+	/*
+	* How many samples are taken for the short term (sale) EMA
+	*/
 	private $shortTermSaleSampleCount = null;
+		
+	/*
+	* How many samples are taken for the medium term EMA
+	*/
 	private $mediumTermSampleCount = null;
+		
+	/*
+	* How many samples are taken for the long term EMA
+	*/
 	private $longTermSampleCount = null;
 
+	/**
+	* Parses the Bot settings
+	*
+	* @param DataInterface $dataInterface An instance of a implemented DataInterface class, please make sure to give each bot instance it's own DataInterface class instance and not a copy/the same
+	* @param Array $settings
+	*/
 	public function __construct(
 		DataInterface $dataInterface,
 		Array $settings
@@ -64,6 +101,9 @@ class Settings
 		}
 	}
 
+	/**
+	* Parses the customizable settings from a database.
+	*/
 	public function loadFromDataInterface()
 	{
 		$this->buyDelayMinutes = $this->dataInterface->getSetting("buyDelayMinutes", 0);
@@ -77,38 +117,121 @@ class Settings
 		$this->longTermSampleCount = $this->dataInterface->getSetting("longTermSampleCount", 240);
 	}
 
+	/**
+	* Returns the Bot identifier, usually a number but if your DataInterface supports it it could be a string.
+	*
+	* @return Number
+	*/
 	public function getID() { return $this->ID; }
+
+	/**
+	* Returns the Bot name
+	*
+	* @return String
+	*/
 	public function getName() { return $this->name; }
+
+	/**
+	* Returns the Bot type (Bot::TYPE_LIVE or Bot::TYPE_SIMULATION)
+	*
+	* @return String
+	*/
 	public function getType() { return $this->type; }
 		
+	/**
+	* Returns the base asset - which usually is XLM native.
+	* @return ZuluCrypto\StellarSdk\XdrModel\Asset
+	*/
 	public function getBaseAsset() { return $this->baseAsset; }
+
+	/**
+	* Returns the base asset budget the Bot will start with. You can't change this after the bot has started trading.
+	* @return float
+	*/
 	public function getBaseAssetInitialBudget() { return $this->baseAssetInitialBudget; }
+
+	/**
+	* Returns the counter asset - for example MOBI
+	* @return ZuluCrypto\StellarSdk\XdrModel\Asset
+	*/
 	public function getCounterAsset() { return $this->counterAsset; }
 
+	/**
+	* Instance of the StellarAPI class
+	* @return StellarAPI
+	*/
 	public function getAPI() { return $this->API; }
-	public function getAccountSecret() { return $this->accountSecret; }
-			
-	public function getBuyDelayMinutes() { return $this->buyDelayMinutes; }
-	public function getMinimumProfitPercentage() { return $this->minimumProfitPercentage; }
-	public function getMinimumHoldMinutes() { return $this->minimumHoldMinutes; }
-			
-	public function getShortTermSampleCount() { return $this->shortTermSampleCount; }
-	public function getShortTermSaleSampleCount() { return $this->shortTermSaleSampleCount; }
-	public function getMediumTermSampleCount() { return $this->mediumTermSampleCount; }
-	public function getLongTermSampleCount() { return $this->longTermSampleCount; }
 
-	public function getPrognosisWindowMinutes() { return $this->prognosisWindowMinutes; }
-
+	/**
+	* Instance of the DataInterface implemtated class
+	* @return DataInterface
+	*/
 	public function getDataInterface()
 	{
 		return $this->dataInterface;
 	}
 
+	/**
+	* Stellar account secret
+	* @return String
+	*/
+	public function getAccountSecret() { return $this->accountSecret; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getBuyDelayMinutes() { return $this->buyDelayMinutes; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getMinimumProfitPercentage() { return $this->minimumProfitPercentage; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getMinimumHoldMinutes() { return $this->minimumHoldMinutes; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getShortTermSampleCount() { return $this->shortTermSampleCount; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getShortTermSaleSampleCount() { return $this->shortTermSaleSampleCount; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getMediumTermSampleCount() { return $this->mediumTermSampleCount; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getLongTermSampleCount() { return $this->longTermSampleCount; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getPrognosisWindowMinutes() { return $this->prognosisWindowMinutes; }
+
+	/**
+	* Gets a setting from the settings array and removes it from the array afterwards
+	*/
 	private function getOptionalSetting(Array &$settings, $name, $defaultValue = null)
 	{
-		return isset($settings[$name]) ? $settings[$name] : $defaultValue;
+		$value = isset($settings[$name]) ? $settings[$name] : $defaultValue;
+
+		@unset($settings[$name]);
+
+		return $value;
 	}
 
+	/**
+	* Gets a setting from the settings array and removes it from the array afterwards, will fail if the settings doesn't exist
+	*/
 	private function getSetting(Array &$settings, $name)
 	{
 		$value = $settings[$name];

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<phpdoc>
+  <parser>
+    <target>../docs/parsed/api</target>
+  </parser>
+  <transformer>
+    <target>../docs/api</target>
+  </transformer>
+  <files>
+    <directory>.</directory>
+  </files>
+</phpdoc>
