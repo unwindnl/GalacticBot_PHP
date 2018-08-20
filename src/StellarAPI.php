@@ -3,7 +3,7 @@
 namespace GalacticBot;
 
 /*
-* Wrapper class to simplify Stellar PHP API.
+* Minimal wrapper class to Stellar PHP API.
 */
 class StellarAPI {
 
