@@ -196,7 +196,7 @@ class EMABot extends \GalacticBot\Bot
 										
 										if (!$time->isNow())
 										{
-											$this->logWarning("Not buying based on old data.");
+											$this->data->logWarning("Not buying based on old data.");
 										}
 										else if ($this->buy($time))
 										{
@@ -204,7 +204,7 @@ class EMABot extends \GalacticBot\Bot
 										}
 										else
 										{
-											$this->logWarning("Trade failed to create (this also happens when a bot is paused).");
+											$this->data->logWarning("Trade failed to create (this also happens when a bot is paused).");
 											$tradeState = self::TRADE_STATE_DIP_WAIT;
 										}
 									} else {
@@ -264,7 +264,7 @@ class EMABot extends \GalacticBot\Bot
 
 									if (!$time->isNow())
 									{
-										$this->logWarning("Not selling based on old data.");
+										$this->data->logWarning("Not selling based on old data.");
 									}
 									else if ($this->sell($time, $lastTrade))
 									{
@@ -272,7 +272,7 @@ class EMABot extends \GalacticBot\Bot
 									}
 									else
 									{
-										$this->logWarning("Trade failed to create (this also happens when a bot is paused).");
+										$this->data->logWarning("Trade failed to create (this also happens when a bot is paused).");
 										$tradeState = self::TRADE_STATE_DIP_WAIT;
 									}
 								}
@@ -291,7 +291,7 @@ class EMABot extends \GalacticBot\Bot
 							{
 								if (!$time->isNow())
 								{
-									$this->logWarning("Not selling based on old data.");
+									$this->data->logWarning("Not selling based on old data.");
 								}
 								// Don't care about other conditions because they where previously met
 								else if ($this->sell($time))
@@ -300,7 +300,7 @@ class EMABot extends \GalacticBot\Bot
 								}
 								else
 								{
-									$this->logWarning("Trade failed to create (this also happens when a bot is paused).");
+									$this->data->logWarning("Trade failed to create (this also happens when a bot is paused).");
 									$tradeState = self::TRADE_STATE_DIP_WAIT;
 								}
 							}
