@@ -236,18 +236,30 @@ class Trade
 
 			$this->state = self::STATE_FILLED;
 			$this->fillPercentage = $fillPercentage * 100;
-
+			
+			/*
 			if ($this->type == self::TYPE_BUY)
 				$this->spentAmount = number_format($this->fee + ($this->boughtAmount * $this->price), 7);
 			else
 				$this->spentAmount = number_format($this->fee + $this->boughtAmount, 7);
-			
+
 			if ($this->type == self::TYPE_BUY)
 				$this->amountRemaining = number_format($this->sellAmount - $this->spentAmount, 7);
 			else
 				$this->amountRemaining = number_format(($this->sellAmount * $this->price) - $this->spentAmount, 7);
-
+			
 			$this->paidPrice = number_format(1 / ($amountFulfilled / $this->spentAmount), 7);
+			*/
+
+			// I don't think you can accurately calculate the real paid price and how much is left,
+			// And whats left is so small i think we can ignore that
+			if ($this->type == self::TYPE_BUY)
+				$this->spentAmount = $this->sellAmount;
+			else
+				$this->spentAmount = $this->boughtAmount;
+
+			$this->amountRemaining = 0;
+			$this->paidPrice = $this->price;
 		}
 		else
 		{

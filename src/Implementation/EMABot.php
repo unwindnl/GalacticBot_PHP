@@ -75,6 +75,12 @@ class EMABot extends \GalacticBot\Bot
 
 	protected function process(\GalacticBot\Time $time, $sample)
 	{
+		/*
+		$trade = $this->data->getTradeByID(9);
+		$trade->updateFromAPIForBot($this->settings->getAPI(), $this);
+		exit();
+		*/
+
 		$state = $this->data->get("state");
 		$tradeState = $this->data->get("tradeState");
 
