@@ -97,6 +97,24 @@ class StellarAPI {
 		return $response;
 	}
 
+	// Source: http://jonisalonen.com/2012/converting-decimal-numbers-to-ratios/
+	function float2rat($n, $tolerance = 1.e-6)
+	{
+		$h1=1; $h2=0;
+		$k1=0; $k2=1;
+		$b = 1/$n;
+
+		do {
+			$b = 1/$b;
+			$a = floor($b);
+			$aux = $h1; $h1 = $a*$h1+$h2; $h2 = $aux;
+			$aux = $k1; $k1 = $a*$k1+$k2; $k2 = $aux;
+			$b = $b-$a;
+		} while (abs($n-$h1/$k1) > $n*$tolerance);
+
+		return [$h1, $k1];
+	}
+
 	/**
 	 * Performs the Horizon API 'manageOffer' call (creates, updates or deletes an offer).
 	 */
@@ -115,21 +133,10 @@ class StellarAPI {
 		$server = new ExtendedServer($server, $this->isTestNet);
 
 		$keypair = \ZuluCrypto\StellarSdk\Keypair::newFromSeed($bot->getSettings()->getAccountSecret());
-	
-		$price = new \ZuluCrypto\StellarSdk\XdrModel\Price($sellingAmount, $buyingAmount);
 
-		$digits = 0;
+		$price = $this->float2rat($sellingAmount / $buyingAmount);
 
-		while(fmod($price->getNumerator(), 1) > 0 || fmod($price->getDenominator(), 1) > 0) {
-			$price->setNumerator(10 * $price->getNumerator());
-			$price->setDenominator(10  * $price->getDenominator());
-			$digits++;
-
-			if ($digits >= 7) {
-				$price->setNumerator(round($price->getNumerator()));
-				$price->setDenominator(round($price->getDenominator()));
-			}
-		}
+		$price = new \ZuluCrypto\StellarSdk\XdrModel\Price($price[0], $price[1]);
 
 		$transactionBuilder = $server->buildTransaction($keypair);
 
