@@ -194,7 +194,11 @@ class EMABot extends \GalacticBot\Bot
 										$tradeState = self::TRADE_STATE_NONE;
 										$startOfBuyDelayDate = null;
 										
-										if ($this->buy($time))
+										if (!$time->isNow())
+										{
+											$this->logWarning("Not buying based on old data.");
+										}
+										else if ($this->buy($time))
 										{
 											$tradeState = self::TRADE_STATE_SELL_WAIT;
 										}
@@ -258,7 +262,11 @@ class EMABot extends \GalacticBot\Bot
 								{
 									$this->data->logVerbose("Price has changed (was {$lastOrderPrice}, now: {$currentPrice}) since we submitted our offer but is still enough profit; so changing our current offer.");
 
-									if ($this->sell($time, $lastTrade))
+									if (!$time->isNow())
+									{
+										$this->logWarning("Not selling based on old data.");
+									}
+									else if ($this->sell($time, $lastTrade))
 									{
 										$tradeState = self::TRADE_STATE_SELL_WAIT_FOR_TRADES;
 									}
@@ -273,7 +281,6 @@ class EMABot extends \GalacticBot\Bot
 									$this->data->logVerbose("Price has changed (was {$lastOrderPrice}, now: {$currentPrice}) since we submitted our offer and is not enough profit; so cancelling our current offer.");
 
 									$this->cancel($time, $lastTrade);
-
 									$tradeState = self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT;
 								}
 							}
@@ -282,8 +289,12 @@ class EMABot extends \GalacticBot\Bot
 							&&	$gotEnoughProfit
 							)
 							{
+								if (!$time->isNow())
+								{
+									$this->logWarning("Not selling based on old data.");
+								}
 								// Don't care about other conditions because they where previously met
-								if ($this->sell($time))
+								else if ($this->sell($time))
 								{
 									$tradeState = self::TRADE_STATE_SELL_WAIT_FOR_TRADES;
 								}
