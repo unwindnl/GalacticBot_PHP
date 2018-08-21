@@ -107,7 +107,7 @@ class EMABot extends \GalacticBot\Bot
 		$gotFullBuffers = $gotFullBuffers && $this->longTermSamples->getIsBufferFull();
 		$gotFullBuffers = $gotFullBuffers && $this->predictionBuffer->getIsBufferFull();
 
-		$startOfBuyDelayDate = $this->data->get("startOfBuyDelayDate") ? Time::fromString($this->data->get("startOfBuyDelayDate")) : null;
+		$startOfBuyDelayDate = $this->data->get("startOfBuyDelayDate") ? \GalacticBot\Time::fromString($this->data->get("startOfBuyDelayDate")) : null;
 
 		$lastTrade = $this->data->getLastTrade();
 
