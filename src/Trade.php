@@ -269,10 +269,16 @@ class Trade
 		$bot->getDataInterface()->saveTrade($this);
 	}
 
-	static function fromHorizonOperationAndResult(\ZuluCrypto\StellarSdk\XdrModel\Operation\ManageOfferOp $operation, \ZuluCrypto\StellarSdk\XdrModel\ManageOfferResult $result, $paidFee)
+	static function fromHorizonOperationAndResult(
+		\ZuluCrypto\StellarSdk\XdrModel\Operation\ManageOfferOp $operation,
+		\ZuluCrypto\StellarSdk\XdrModel\ManageOfferResult $result,
+		$transactionEnvelopeXdrString,
+		$paidFee
+	)
 	{
 		$o = new self();
 		$o->state = self::STATE_CREATED;
+		$o->transactionEnvelopeXdr = $transactionEnvelopeXdrString;
 		$o->ID = null;
 
 		$o->offerID = $result->getOffer() ? $result->getOffer()->getOfferId() : null;

@@ -121,7 +121,7 @@ class StellarAPI {
 	function manageOffer(Bot $bot, Time $time, \ZuluCrypto\StellarSdk\XdrModel\Asset $sellingAsset, $sellingAmount, \ZuluCrypto\StellarSdk\XdrModel\Asset $buyingAsset, $offerIDToUpdate = null, $cancelOffer = false)
 	{
 		global $_BASETIMEZONE;
-		
+	
 		$price = $bot->getDataInterface()->getAssetValueForTime($time);
 
 		$buyingAmount = $price * $sellingAmount;
@@ -149,9 +149,13 @@ class StellarAPI {
 		);
 
 		$transactionBuilder->addOperation($operation);
-		
+
 		try
 		{
+			$transactionEnvelope = $transactionBuilder->sign($keypair);
+		
+			$transactionEnvelopeXdrString = base64_encode($transactionEnvelope->toXdr());
+
 			$response = $transactionBuilder->submit($keypair);
 
 			$result = $response->getResult();
@@ -159,7 +163,7 @@ class StellarAPI {
 			if ($cancelOffer)
 				return true;
 
-			return Trade::fromHorizonOperationAndResult($operation, $result->getOperationResults()[0], $result->getFeeCharged()->getScaledValue());
+			return Trade::fromHorizonOperationAndResult($operation, $result->getOperationResults()[0], $transactionEnvelopeXdrString, $result->getFeeCharged()->getScaledValue());
 		}
 		catch(\ZuluCrypto\StellarSdk\Horizon\Exception\PostTransactionException $exception)
 		{
