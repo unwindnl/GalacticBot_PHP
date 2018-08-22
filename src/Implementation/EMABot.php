@@ -76,6 +76,13 @@ class EMABot extends \GalacticBot\Bot
 	protected function process(\GalacticBot\Time $time, $sample)
 	{
 		/*
+		// Test buy
+		$this->buy($time);
+		exit();
+		*/
+
+		/*
+		// Manually trigger trade/offer update
 		$trade = $this->data->getTradeByID(9);
 		$trade->updateFromAPIForBot($this->settings->getAPI(), $this);
 		exit();
@@ -116,9 +123,6 @@ class EMABot extends \GalacticBot\Bot
 		$startOfBuyDelayDate = $this->data->get("startOfBuyDelayDate") ? \GalacticBot\Time::fromString($this->data->get("startOfBuyDelayDate")) : null;
 
 		$lastTrade = $this->data->getLastTrade();
-
-		if ($lastTrade && !$lastTrade->getIsFilledCompletely())
-			$lastTrade->updateFromAPIForBot($this->settings->getAPI(), $this);
 
 		$lastCompletedTrade = $this->data->getLastCompletedTrade();
 
