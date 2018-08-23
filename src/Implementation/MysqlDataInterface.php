@@ -301,7 +301,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		return null;
 	}
 
-	function getTrades(int $limit, bool $orderDesc)
+	function getTrades($limit, $orderDesc)
 	{
 		$list = [];
 
