@@ -84,7 +84,7 @@ class Time
 	static function fromString($string)
 	{
 		$o = new self();
-		$o->dateTime = new \DateTime($string, null);
+		$o->dateTime = new \DateTime($string, new \DateTimeZone("UTC"));
 		return $o;
 	}
 
@@ -98,13 +98,13 @@ class Time
 	static function now()
 	{
 		$o = new self();
-		$o->setDate(new \DateTime(null, null));
+		$o->setDate(new \DateTime(null, new \DateTimeZone("UTC")));
 		return $o;
 	}
 
 	static function fromTimestamp($stamp)
 	{
-		$d = new \DateTime();
+		$d = new \DateTime(null, new \DateTimeZone("UTC"));
 		$d->setTimestamp($stamp);
 
 		$o = new self();
