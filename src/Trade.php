@@ -176,6 +176,14 @@ class Trade
 
 	function updateFromAPIForBot(StellarAPI $api, Bot $bot)
 	{
+		if (!$this->offerID && $this->claimedOffers) {
+			$claimedOffers = json_decode($this->claimedOffers);
+
+			foreach($claimedOffers AS $offer)
+				if ($offer->offerID)
+					$this->offerID = $offer->offerID;
+		}
+
 		if ($this->offerID) {
 			$offerInfo = $api->getOfferInfoByID($bot, $this->offerID);
 
@@ -203,6 +211,9 @@ class Trade
 						"buyingAssetCode" => $trade->getBaseAsset()->getAssetCode(),
 					);
 				}
+				
+				if (count($claimedOffers))
+					$this->state = self::STATE_FILLED;
 
 				$this->claimedOffers = json_encode($claimedOffers);
 		
