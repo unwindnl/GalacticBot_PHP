@@ -133,7 +133,7 @@ interface DataInterface
 	* @param bool $orderDesc True if should sort by ProcessedAt in descending order
 	* @return Array
 	*/
-	function getTrades(int $limit, bool $orderDesc);
+	function getTrades(\int $limit, \bool $orderDesc);
 
 	/*
 	* Returns all trades in a specific time frame

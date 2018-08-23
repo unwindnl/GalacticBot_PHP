@@ -103,6 +103,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 			$samples = new \GalacticBot\Samples(2);
 
+			/* --- Exclude bids, what people are asking is the price of an asset pair
 			if ($orderbook && isset($orderbook["bids"]))
 			{
 				$price = $this->excludeLastTradeFromOffers($orderbook["bids"]);
@@ -110,6 +111,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				if ($price !== null)
 					$samples->add($price);
 			}
+			*/
 
 			if ($orderbook && isset($orderbook["asks"]))
 			{
@@ -299,7 +301,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		return null;
 	}
 
-	function getTrades($limit, $orderDesc)
+	function getTrades(int $limit, bool $orderDesc)
 	{
 		$list = [];
 
