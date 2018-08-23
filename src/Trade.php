@@ -234,9 +234,11 @@ class Trade
 
 			$fillPercentage = $amountFulfilled / $amountTotal;
 
-			$this->state = self::STATE_FILLED;
 			$this->fillPercentage = $fillPercentage * 100;
-			
+		
+			if ($this->fillPercentage >= 99.999)
+				$this->state = self::STATE_FILLED;
+	
 			/*
 			if ($this->type == self::TYPE_BUY)
 				$this->spentAmount = number_format($this->fee + ($this->boughtAmount * $this->price), 7);
