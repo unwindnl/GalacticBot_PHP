@@ -341,6 +341,8 @@ abstract class Bot
 
 		$this->data->logVerbose("Processing timeframe (" . $time->toString() . ")");
 
+		$lastTrade = $this->data->getLastTrade();
+
 		// Update the last trade
 		if ($lastTrade && !$lastTrade->getIsFilledCompletely())
 			$lastTrade->updateFromAPIForBot($this->settings->getAPI(), $this);
