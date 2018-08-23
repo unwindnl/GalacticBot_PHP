@@ -270,6 +270,13 @@ abstract class Bot
 	*/
 	public function work()
 	{
+		date_default_timezone_set("UTC");
+
+		$timezone = date_default_timezone_get();
+
+		if ($timezone != "UTC")
+			exit("Cannot set timezone to UTC");
+
 		$this->currentTime = new Time($this->lastProcessingTime);
 
 		$ticks = 0;
