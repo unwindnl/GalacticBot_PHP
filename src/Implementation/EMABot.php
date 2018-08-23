@@ -259,6 +259,12 @@ class EMABot extends \GalacticBot\Bot
 
 							$gotEnoughProfit = $currentProfitPercentage >= $this->settings->getMinimumProfitPercentage();
 
+							if ($tradeState == self::TRADE_STATE_SELL_WAIT_POSITIVE && $shortAboveLong)
+								$tradeState = self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT;
+
+							if ($tradeState == self::TRADE_STATE_SELL_DELAY && $holdLongEnough)
+								$tradeState = self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT;
+
 							if (
 								$tradeState == self::TRADE_STATE_SELL_WAIT_FOR_TRADES
 							)
