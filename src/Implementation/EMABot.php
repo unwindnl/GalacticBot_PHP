@@ -63,7 +63,7 @@ class EMABot extends \GalacticBot\Bot
 
 			case self::TRADE_STATE_SELL_WAIT:					$label = "Waiting for rise to sell"; break;
 			case self::TRADE_STATE_SELL_DELAY:					$label = "Delaying to sell"; break;
-			case self::TRADE_STATE_SELL_WAIT_POSITIVE:			$label = "Holding, waiting for short above med"; break;
+			case self::TRADE_STATE_SELL_WAIT_POSITIVE:			$label = "Holding, waiting for short above long"; break;
 			case self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT:	$label = "Delaying to sell (min profit%)"; break;
 			case self::TRADE_STATE_SELL_WAIT_FOR_TRADES:		$label = "Waiting for offer to fulfill"; break;
 
