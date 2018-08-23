@@ -52,19 +52,20 @@ class EMABot extends \GalacticBot\Bot
 	}
 
 	public function getTradeStateLabel($forState) {
+		$counter = $this->settings->getCounterAsset()->getAssetCode();
 
 		switch($forState)
 		{
 			case self::TRADE_STATE_BUFFERING:					$label = "Waiting for enough data"; break;
-			case self::TRADE_STATE_NONE:						$label = "Waiting for rise to buy"; break;
+			case self::TRADE_STATE_NONE:						$label = "Waiting for rise to buy $counter"; break;
 
-			case self::TRADE_STATE_BUY_DELAY:					$label = "Delaying to buy"; break;
+			case self::TRADE_STATE_BUY_DELAY:					$label = "Delaying to buy $counter"; break;
 			case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:		$label = "Negative trend, wait for bottom"; break;
 
-			case self::TRADE_STATE_SELL_WAIT:					$label = "Waiting for rise to sell"; break;
-			case self::TRADE_STATE_SELL_DELAY:					$label = "Delaying to sell"; break;
+			case self::TRADE_STATE_SELL_WAIT:					$label = "Waiting for rise to sell $counter"; break;
+			case self::TRADE_STATE_SELL_DELAY:					$label = "Delaying to sell $counter"; break;
 			case self::TRADE_STATE_SELL_WAIT_POSITIVE:			$label = "Holding, waiting for short above long"; break;
-			case self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT:	$label = "Delaying to sell (min profit%)"; break;
+			case self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT:	$label = "Delaying to sell $counter (min profit%)"; break;
 			case self::TRADE_STATE_SELL_WAIT_FOR_TRADES:		$label = "Waiting for offer to fulfill"; break;
 
 			case self::TRADE_STATE_DIP_WAIT:					$label = "Waiting for short to fall below long"; break;
