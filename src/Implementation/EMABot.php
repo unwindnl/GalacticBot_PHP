@@ -360,7 +360,10 @@ class EMABot extends \GalacticBot\Bot
 
 	function predict(\GalacticBot\Time $time)
 	{
-		$mediumTermSamplesArray = $this->mediumTermSamples->getArray();
+		$windowSize = $this->settings->getPrognosisWindowMinutes();
+
+		// Get the last x samples from the medium term array
+		$mediumTermSamplesArray = array_slice($this->mediumTermSamples->getArray(), -$windowSize, $windowSize);
 
 		$first = $mediumTermSamplesArray[0];
 		$last = $mediumTermSamplesArray[count($mediumTermSamplesArray)-1];
@@ -370,7 +373,7 @@ class EMABot extends \GalacticBot\Bot
 		$this->predictionBuffer->clear();
 		
 		foreach($mediumTermSamplesArray AS $i => $medium) {
-			if ($i >= $this->settings->getPrognosisWindowMinutes())
+			if ($i >= $windowSize)
 				continue;
 
 			$prediction = $medium;
