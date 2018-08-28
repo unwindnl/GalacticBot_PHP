@@ -110,6 +110,12 @@ interface DataInterface
 	function getLastTrade();
 
 	/*
+	* Return the first completed trade (sorted on Trade::ProcessedAt)
+	* @return Trade
+	*/
+	function getFirstCompletedTrade();
+
+	/*
 	* Return the last added trade which has the state Trade::STATE_FILLED (sorted on Trade::ProcessedAt)
 	* @return Trade
 	*/

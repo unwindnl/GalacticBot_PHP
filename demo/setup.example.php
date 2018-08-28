@@ -28,7 +28,6 @@
 			
 			// Source or base asset, this will normally be the native (XLM) asset
 			"baseAsset" => ZuluCrypto\StellarSdk\XdrModel\Asset::newNativeAsset(),
-			"baseAssetInitialBudget" => 1,
 
 			// Asset we want to trade with
 			"counterAsset" => ZuluCrypto\StellarSdk\XdrModel\Asset::newCustomAsset("MOBI", "GA6HCMBLTZS5VYYBCATRBRZ3BZJMAFUDKYYF6AH6MVCMGWMRDNSWJPIH"),
@@ -56,7 +55,6 @@
 			"name" => "Simulation Bot",
 			
 			"baseAsset" => ZuluCrypto\StellarSdk\XdrModel\Asset::newNativeAsset(),
-			"baseAssetInitialBudget" => 1,
 
 			"counterAsset" => ZuluCrypto\StellarSdk\XdrModel\Asset::newCustomAsset("MOBI", "GA6HCMBLTZS5VYYBCATRBRZ3BZJMAFUDKYYF6AH6MVCMGWMRDNSWJPIH"),
 

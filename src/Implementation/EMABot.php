@@ -205,9 +205,9 @@ class EMABot extends \GalacticBot\Bot
 										$tradeState = self::TRADE_STATE_NONE;
 										$startOfBuyDelayDate = null;
 										
-										if (!$time->isNow())
+										if (!$time->isNow() && $this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
 										{
-											$this->data->logWarning("Not buying based on old data.");
+											$this->data->logWarning("Not buying based on old data (live mode).");
 										}
 										else if ($this->buy($time))
 										{
@@ -223,7 +223,6 @@ class EMABot extends \GalacticBot\Bot
 									}
 								}
 							}
-
 						}
 						else
 						{
@@ -279,9 +278,9 @@ class EMABot extends \GalacticBot\Bot
 								{
 									$this->data->logVerbose("Price has changed (was {$lastOrderPrice}, now: {$currentPrice}) since we submitted our offer but is still enough profit; so changing our current offer.");
 
-									if (!$time->isNow())
+									if (!$time->isNow() && $this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
 									{
-										$this->data->logWarning("Not selling based on old data.");
+										$this->data->logWarning("Not selling based on old data (live mode).");
 									}
 									else if ($this->sell($time, $lastTrade))
 									{
@@ -303,12 +302,15 @@ class EMABot extends \GalacticBot\Bot
 							}
 							else if (
 								$tradeState == self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT
-							&&	$gotEnoughProfit
 							)
 							{
-								if (!$time->isNow())
+								if (!$gotEnoughProfit)
 								{
-									$this->data->logWarning("Not selling based on old data.");
+									// Waiting for enough profit, other conditions we're met previously so wo don't have to check them anymore
+								}
+								else if (!$time->isNow() && $this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
+								{
+									$this->data->logWarning("Not selling based on old data (live mode).");
 								}
 								// Don't care about other conditions because they where previously met
 								else if ($this->sell($time))
@@ -333,6 +335,9 @@ class EMABot extends \GalacticBot\Bot
 							{
 								$tradeState = self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT;
 							}
+
+						//	if ($gotEnoughProfit)
+						//		exit("------ GENOEG IS GENOEG ------");
 						}
 					break;
 

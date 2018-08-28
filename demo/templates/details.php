@@ -24,6 +24,10 @@
 			<td><?=$bot->getCurrentBaseAssetBudget()?></td>
 		</tr>
 		<tr>
+			<th>Current base asset profit</th>
+			<td><?=$bot->getProfitPercentage()?>%</td>
+		</tr>
+		<tr>
 			<th>Current counter asset holdings</th>
 			<td><?=$bot->getCurrentCounterAssetBudget()?></td>
 		</tr>

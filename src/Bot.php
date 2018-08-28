@@ -410,6 +410,19 @@ abstract class Bot
 	*/
 	function getCurrentBaseAssetBudget()
 	{
+		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
+		{
+			$lastTrade = $this->data->getLastCompletedTrade();
+
+			if ($lastTrade && $lastTrade->getType() == Trade::TYPE_SELL)
+				return $lastTrade->getBoughtAmount();
+			else if ($lastTrade)
+				return 0; // we currently have the counter asset
+
+			// Start a simulation with a fixed amount
+			return 100;
+		}
+
 		$account = $this->getAccountInfo();
 
 		foreach($account->getBalances() as $balance)
@@ -437,6 +450,16 @@ abstract class Bot
 	*/
 	function getCurrentCounterAssetBudget()
 	{
+		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
+		{
+			$lastTrade = $this->data->getLastCompletedTrade();
+
+			if ($lastTrade && $lastTrade->getType() == Trade::TYPE_BUY)
+				return $lastTrade->getBoughtAmount();
+
+			return 0;
+		}
+
 		$account = $this->getAccountInfo();
 
 		foreach($account->getBalances() as $balance)
@@ -464,32 +487,19 @@ abstract class Bot
 	*/
 	function getTotalHoldings()
 	{
+		$sum = $this->getCurrentBaseAssetBudget();
+		$counterAssetAmmount = $this->getCurrentCounterAssetBudget();
+
 		$lastTrade = $this->data->getLastCompletedTrade();
+		$previousTrade = $lastTrade && $lastTrade->getPreviousBotTradeID() ? $this->data->getTradeByID($lastTrade->getPreviousBotTradeID()) : null;
 
-		if (!$lastTrade)
-			return $this->settings->getBaseAssetInitialBudget();
-		
-		$previousTrade = $lastTrade->getPreviousBotTradeID() ? $this->data->getTradeByID($lastTrade->getPreviousBotTradeID()) : null;
-
-		$sum = 0;
-
-		if ($lastTrade->getType() == Trade::TYPE_BUY)
+		if ($lastTrade && $lastTrade->getType() == Trade::TYPE_BUY)
 		{
-			$sum = $lastTrade->getBoughtAmount() * $lastTrade->getPaidPrice();
-
-			if ($previousTrade)
-			{
-				$sum += $previousTrade->getAmountRemaining();
-			}
+			$sum += $counterAssetAmmount * $lastTrade->getPaidPrice();
 		}
-		else
+		else if ($lastTrade && $previousTrade->getType() == Trade::TYPE_BUY)
 		{
-			$sum = $lastTrade->getBoughtAmount();
-
-			if ($previousTrade)
-			{
-				$sum += $previousTrade->getAmountRemaining() * $lastTrade->getPaidPrice();
-			}
+			$sum += $counterAssetAmmount * $previousTrade->getPaidPrice();
 		}
 
 		return $sum;
@@ -502,89 +512,16 @@ abstract class Bot
 	*/
 	function getProfitPercentage()
 	{
-		$start = $this->settings->getBaseAssetInitialBudget();
+		$firstTrade = $this->data->getFirstCompletedTrade();
+
+		$start = $firstTrade ? $firstTrade->getSellAmount() : 0;
+
+		if (!$start)
+			return 0;
+
 		$current = $this->getTotalHoldings();
 
-		return (($current / $start) - 1) * 100;
-	}
-
-	/**
-	* Calculates how much this bot holds, and thus can be traded with, for a specific asset.
-	*
-	* @return float
-	*/
-	function getAvailableBudgetForAsset($asset, $onlyFromLastTrade = true)
-	{
-		$lastTrade = $this->data->getLastCompletedTrade();
-
-		if ($lastTrade)
-		{
-			if ($onlyFromLastTrade)
-			{
-				if (
-					$asset->getType() == $this->settings->getCounterAsset()->getType()
-				&&	$lastTrade->getType() != Trade::TYPE_BUY
-				)
-				{
-					$caller = debug_backtrace(0);
-					$caller = array_shift($caller);
-					$caller = $caller["file"] . " on line: #" . $caller["line"];
-
-					$this->data->save();
-
-					exit("TODO: How did this happen? Last trade type is invalid " . __FILE__ . " on line #" . __LINE__ . "\nCalled from: $caller\n");
-				}
-				else if (
-					$asset->getType() == $this->settings->getBaseAsset()->getType()
-				&&	$lastTrade->getType() != Trade::TYPE_SELL
-				)
-				{
-					$caller = debug_backtrace(0);
-					$caller = array_shift($caller);
-					$caller = $caller["file"] . " on line: #" . $caller["line"];
-
-					$this->data->save();
-
-					exit("TODO: How did this happen? Last trade type is invalid " . __FILE__ . " on line #" . __LINE__ . "\nCalled from: $caller\n");
-				}
-			}
-			else
-			{
-				if (
-					$asset->getType() == $this->settings->getBaseAsset()->getType()
-				&&	$lastTrade->getType() == Trade::TYPE_BUY
-				)
-				{
-					$lastTrade = $this->data->getTradeByID($lastTrade->getPreviousBotTradeID());
-				}
-				else if (
-					$asset->getType() == $this->settings->getCounterAsset()->getType()
-				&&	$lastTrade->getType() == Trade::TYPE_SELL
-				)
-				{
-					$lastTrade = $this->data->getTradeByID($lastTrade->getPreviousBotTradeID());
-				}
-			}
-
-			if ($lastTrade)
-			{
-				$previousTrade = $this->data->getTradeByID($lastTrade->getPreviousBotTradeID());
-
-				$budget = $lastTrade->getBoughtAmount();
-
-				if ($previousTrade)
-					$budget += $previousTrade->getAmountRemaining();
-			
-				return $budget;
-			}
-		}
-		else if ($asset->getType() == $this->settings->getBaseAsset()->getType())
-		{
-			// initial budget
-			return $this->settings->getBaseAssetInitialBudget();
-		}
-
-		return null;
+		return round((($current / $start) - 1) * 10000)/100;
 	}
 
 	/**
@@ -597,7 +534,7 @@ abstract class Bot
 		if (!$this->shouldTrade)
 			return null;
 
-		$budget = $this->getAvailableBudgetForAsset($this->settings->getBaseAsset());
+		$budget = $this->getCurrentBaseAssetBudget();
 
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
 		{
@@ -646,7 +583,7 @@ abstract class Bot
 		if (!$this->shouldTrade)
 			return null;
 
-		$budget = $this->getAvailableBudgetForAsset($this->settings->getCounterAsset());
+		$budget = $this->getCurrentCounterAssetBudget();
 
 		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
 

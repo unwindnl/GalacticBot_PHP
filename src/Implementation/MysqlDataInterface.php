@@ -270,6 +270,32 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		}
 	}
 
+	function getFirstCompletedTrade()
+	{
+		$sql = "
+			SELECT	*
+			FROM	BotTrade
+			WHERE	state = '" . \GalacticBot\Trade::STATE_FILLED . "'
+				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+			ORDER BY
+					processedAt ASC
+			LIMIT	1
+		";
+	
+		if (!$result = $this->mysqli->query($sql))
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+
+		$row = $result->fetch_assoc();
+
+		if ($row && count($row)) {
+			$trade = new \GalacticBot\Trade();
+			$trade->setData($row);
+			return $trade;
+		}
+
+		return null;
+	}
+
 	function getLastCompletedTrade()
 	{
 		$last = $this->getLastTrade();

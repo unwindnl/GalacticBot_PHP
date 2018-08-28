@@ -22,7 +22,6 @@ class Settings
 
 	// Base asset (usually XLM / native)
 	private $baseAsset = null;
-	private $baseAssetInitialBudget = null;
 
 	// Counter asset, for example MOBI
 	private $counterAsset = null;
@@ -89,7 +88,6 @@ class Settings
 		$this->type = self::getSetting($settings, "type");
 		$this->name = self::getSetting($settings, "name");
 		$this->baseAsset = self::getSetting($settings, "baseAsset");
-		$this->baseAssetInitialBudget = self::getSetting($settings, "baseAssetInitialBudget");
 
 		$this->API = self::getSetting($settings, "API");
 		$this->accountSecret = self::getSetting($settings, "accountSecret");
@@ -143,12 +141,6 @@ class Settings
 	* @return ZuluCrypto\StellarSdk\XdrModel\Asset
 	*/
 	public function getBaseAsset() { return $this->baseAsset; }
-
-	/**
-	* Returns the base asset budget the Bot will start with. You can't change this after the bot has started trading.
-	* @return float
-	*/
-	public function getBaseAssetInitialBudget() { return $this->baseAssetInitialBudget; }
 
 	/**
 	* Returns the counter asset - for example MOBI
