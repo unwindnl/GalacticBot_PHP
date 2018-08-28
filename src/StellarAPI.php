@@ -43,6 +43,20 @@ class StellarAPI {
 	public function getIsTestNet() { return $this->isTestNet; }
 
 	/**
+	 * Retrieves information about an Stellar account
+	 */
+	function getAccount(Bot $bot) {
+		$server = $this->isTestNet ? \ZuluCrypto\StellarSdk\Server::testNet() : \ZuluCrypto\StellarSdk\Server::publicNet();
+		$server = new ExtendedServer($server, $this->isTestNet);
+
+		$keypair = \ZuluCrypto\StellarSdk\Keypair::newFromSeed($bot->getSettings()->getAccountSecret());
+	
+		$result = $server->getExtendedAccount($keypair->getPublicKey());
+
+		return $result;
+	}
+
+	/**
 	 * Retrieves the current order book from the public Stellar Horizon API for a specific asset pair
 	 */
 	static function getPublicOrderBook(Bot $bot, \ZuluCrypto\StellarSdk\XdrModel\Asset $sellingAsset, \ZuluCrypto\StellarSdk\XdrModel\Asset $buyingAsset, $limit = null) {

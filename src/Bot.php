@@ -45,6 +45,16 @@ abstract class Bot
 	private $currentTime = null;
 
 	/**
+	* Information about the bot's account
+	*/
+	private $accountInfo = null;
+
+	/**
+	* Time at which the information about the bot's account was last updated
+	*/
+	private $lastAccountInfoUpdate = null;
+
+	/**
 	* Constructs a new bot instance.
 	*
 	* @param Settings $settings An instance of the Settings class, please make sure to give each bot instance it's own settings class instance and not a copy/the same
@@ -365,25 +375,59 @@ abstract class Bot
 	}
 
 	/**
+	* Loads information (balance and minimum requirement) for the bot's Stellar account.
+	*
+	* @return float
+	*/
+	function getAccountInfo()
+	{
+		if (!$this->accountInfo || !$this->lastAccountInfoUpdate->isNow())
+		{
+			$info = $this->settings->getAPI()->getAccount($this);
+
+			if ($info)
+			{
+				$this->accountInfo = $info;
+				$this->lastAccountInfoUpdate = Time::now();
+			}
+			else if (!$this->accountInfo)
+			{
+				$this->data->logError("Cannot load account info from the Stellar network.");
+			}
+			else
+			{
+				$this->data->logWarning("Cannot load account info from the Stellar network. Using previously loaded data for now.");
+			}
+		}
+
+		return $this->accountInfo;
+	}
+
+	/**
 	* Returns total amount this Bot has in the base asset.
 	*
 	* @return float
 	*/
 	function getCurrentBaseAssetBudget()
 	{
-		$lastTrade = $this->data->getLastCompletedTrade();
+		$account = $this->getAccountInfo();
 
-		if (!$lastTrade)
-			return $this->settings->getBaseAssetInitialBudget();
+		foreach($account->getBalances() as $balance)
+		{
+			$assetCode = $balance->getAssetCode();
 
-		$sum = 0;
+			if ($assetCode == "XLM")
+				$assetCode = null;
 
-		if ($lastTrade->getType() == Trade::TYPE_SELL)
-			$sum += $this->getAvailableBudgetForAsset($this->settings->getBaseAsset(), false);
-		else
-			$sum += $lastTrade->getAmountRemaining() * $lastTrade->getPaidPrice();
+			if (
+				$this->settings->getBaseAsset()->getAssetCode() == $assetCode
+			)
+			{
+				return $balance->getBalance() - $account->getMinimumRequirement();
+			}
+		}
 
-		return $sum;
+		return null;
 	}
 
 	/**
@@ -393,19 +437,24 @@ abstract class Bot
 	*/
 	function getCurrentCounterAssetBudget()
 	{
-		$lastTrade = $this->data->getLastCompletedTrade();
+		$account = $this->getAccountInfo();
 
-		if (!$lastTrade)
-			return 0;
+		foreach($account->getBalances() as $balance)
+		{
+			$assetCode = $balance->getAssetCode();
 
-		$sum = 0;
+			if ($assetCode == "XLM")
+				$assetCode = null;
 
-		if ($lastTrade->getType() == Trade::TYPE_BUY)
-			$sum += $this->getAvailableBudgetForAsset($this->settings->getCounterAsset(), false);
-		else
-			$sum += $lastTrade->getAmountRemaining();
+			if (
+				$this->settings->getCounterAsset()->getAssetCode() == $assetCode
+			)
+			{
+				return $balance->getBalance();
+			}
+		}
 
-		return $sum;
+		return 0;
 	}
 
 	/**
