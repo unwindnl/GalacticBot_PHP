@@ -23,6 +23,9 @@ class Settings
 	// Base asset (usually XLM / native)
 	private $baseAsset = null;
 
+	// Base asset reservation - bot won't do anything with this amount of the base asset
+	private $baseAssetReservationAmount = null;
+
 	// Counter asset, for example MOBI
 	private $counterAsset = null;
 
@@ -87,7 +90,9 @@ class Settings
 		$this->ID = self::getSetting($settings, "ID");
 		$this->type = self::getSetting($settings, "type");
 		$this->name = self::getSetting($settings, "name");
+
 		$this->baseAsset = self::getSetting($settings, "baseAsset");
+		$this->baseAssetReservationAmount = self::getOptionalSetting($settings, "baseAssetReservationAmount");
 
 		$this->API = self::getSetting($settings, "API");
 		$this->accountSecret = self::getSetting($settings, "accountSecret");
@@ -141,6 +146,12 @@ class Settings
 	* @return ZuluCrypto\StellarSdk\XdrModel\Asset
 	*/
 	public function getBaseAsset() { return $this->baseAsset; }
+
+	/**
+	* Returns the base asset reservation - the bot won't do anything with this amount.
+	* @return float
+	*/
+	public function getBaseAssetReservationAmount() { return $this->baseAssetReservationAmount; }
 
 	/**
 	* Returns the counter asset - for example MOBI

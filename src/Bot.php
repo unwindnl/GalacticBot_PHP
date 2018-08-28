@@ -436,7 +436,7 @@ abstract class Bot
 				$this->settings->getBaseAsset()->getAssetCode() == $assetCode
 			)
 			{
-				return $balance->getBalance() - $account->getMinimumRequirement();
+				return $balance->getBalance() - $account->getMinimumRequirement() - $this->settings->getBaseAssetReservationAmount();
 			}
 		}
 
