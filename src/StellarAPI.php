@@ -148,7 +148,7 @@ class StellarAPI {
 
 		$keypair = \ZuluCrypto\StellarSdk\Keypair::newFromSeed($bot->getSettings()->getAccountSecret());
 
-		$price = $this->float2rat($sellingAmount / $buyingAmount);
+		$price = $this->float2rat($buyingAmount / $sellingAmount);
 
 		$price = new \ZuluCrypto\StellarSdk\XdrModel\Price($price[0], $price[1]);
 

@@ -321,7 +321,7 @@ class Trade
 
 		$o->priceN = $operation->getPrice()->getNumerator();
 		$o->priceD = $operation->getPrice()->getDenominator();
-		$o->price = $o->priceN / $o->priceD;
+		$o->price = $o->priceD / $o->priceN;
 
 		$o->fee = $paidFee;
 		
