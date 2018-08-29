@@ -269,7 +269,7 @@ class EMABot extends \GalacticBot\Bot
 								$tradeState == self::TRADE_STATE_SELL_WAIT_FOR_TRADES
 							)
 							{
-								if ($lastTrade->getType() == Trade::TYPE_SELL)
+								if ($lastTrade->getType() == \GalacticBot\Trade::TYPE_SELL)
 									$lastOrderPrice = number_format(1/$lastTrade->getPrice(), 7);
 								else
 									$lastOrderPrice = number_format($lastTrade->getPrice(), 7);
