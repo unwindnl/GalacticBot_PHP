@@ -294,10 +294,16 @@ class EMABot extends \GalacticBot\Bot
 								}
 								else if ($priceChanged)
 								{
+									$this->data->logVerbose("Price has changed (was {$lastOrderPrice}, now: {$currentPrice}) since we submitted our offer and is not enough profit; so we're leaving our offer as it is.");
+
+									// Not canceling our offer, we'll just wait for a better price
+
+									/*
 									$this->data->logVerbose("Price has changed (was {$lastOrderPrice}, now: {$currentPrice}) since we submitted our offer and is not enough profit; so cancelling our current offer.");
 
 									$this->cancel($time, $lastTrade);
 									$tradeState = self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT;
+									*/
 								}
 							}
 							else if (
