@@ -67,10 +67,13 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			$price = number_format($bid["price"], 7);
 			$amount = $bid["amount"];
 
+			/*
+			 -- lets not do this, this way we come closer to the price people want to pay or have
 			if ($price == $lastTradePrice)
 			{
 				$amount -= (float)$lastTradeAmount;
 			}
+			*/
 
 			if ($amount > 0)
 			{
