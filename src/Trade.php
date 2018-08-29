@@ -223,7 +223,7 @@ class Trade
 			if ($this->type == self::TYPE_BUY)
 				$amountTotal = $this->sellAmount * 1/$this->price;
 			else
-				$amountTotal = $this->sellAmount * $this->price;
+				$amountTotal = $this->sellAmount;
 
 			$amountTotal = (float)number_format($amountTotal, 7, '.', '');
 			$amountLeft = $amountTotal;
@@ -237,12 +237,12 @@ class Trade
 				$this->boughtAmount += $offer->sellingAmount;
 				$amountLeft -= $offer->sellingAmount;
 			}
-			
+
 			$amountFulfilled = $amountTotal-$amountLeft;
 
 			$fillPercentage = $amountFulfilled / $amountTotal;
 
-			$this->fillPercentage = $fillPercentage * 100;
+			$this->fillPercentage = round($fillPercentage * 100 * 100) / 100;
 		
 			if ($this->fillPercentage >= 99.999)
 				$this->state = self::STATE_FILLED;
@@ -305,11 +305,18 @@ class Trade
 
 		$o->claimedOffers = json_encode($claimedOffers);
 
-		$o->sellAmount = $operation->getAmount()->getScaledValue();
-
 		$o->priceN = $operation->getPrice()->getNumerator();
 		$o->priceD = $operation->getPrice()->getDenominator();
-		$o->price = $o->priceD / $o->priceN;
+
+		if ($o->type == self::TYPE_BUY)
+			$o->price = $o->priceD / $o->priceN;
+		else
+			$o->price = $o->priceN / $o->priceD;
+
+		if ($o->type == self::TYPE_BUY)
+			$o->sellAmount = $operation->getAmount()->getScaledValue();
+		else
+			$o->sellAmount = $operation->getAmount()->getScaledValue() * (1/$o->price);
 
 		$o->fee = $paidFee;
 		
