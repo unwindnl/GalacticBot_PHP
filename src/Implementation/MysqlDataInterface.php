@@ -113,9 +113,9 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			}
 			*/
 
-			if ($orderbook && isset($orderbook["asks"]))
+			if ($orderbook && isset($orderbook["bids"]))
 			{
-				$price = $this->excludeLastTradeFromOffers($orderbook["asks"]);
+				$price = $this->excludeLastTradeFromOffers($orderbook["bids"]);
 
 				if ($price !== null)
 					$samples->add($price);
