@@ -211,10 +211,7 @@ class Trade
 						"buyingAssetCode" => $trade->getBaseAsset()->getAssetCode(),
 					);
 				}
-				
-				if (count($claimedOffers))
-					$this->state = self::STATE_FILLED;
-
+			
 				$this->claimedOffers = json_encode($claimedOffers);
 		
 				$bot->getDataInterface()->saveTrade($this);
