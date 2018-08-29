@@ -132,7 +132,7 @@ class StellarAPI {
 	/**
 	 * Performs the Horizon API 'manageOffer' call (creates, updates or deletes an offer).
 	 */
-	function manageOffer(Bot $bot, Time $time, \ZuluCrypto\StellarSdk\XdrModel\Asset $sellingAsset, $sellingAmount, \ZuluCrypto\StellarSdk\XdrModel\Asset $buyingAsset, $offerIDToUpdate = null, $cancelOffer = false)
+	function manageOffer(Bot $bot, $isBuyOffer, Time $time, \ZuluCrypto\StellarSdk\XdrModel\Asset $sellingAsset, $sellingAmount, \ZuluCrypto\StellarSdk\XdrModel\Asset $buyingAsset, $offerIDToUpdate = null, $cancelOffer = false)
 	{
 		global $_BASETIMEZONE;
 	
@@ -148,7 +148,10 @@ class StellarAPI {
 
 		$keypair = \ZuluCrypto\StellarSdk\Keypair::newFromSeed($bot->getSettings()->getAccountSecret());
 
-		$price = $this->float2rat($buyingAmount / $sellingAmount);
+		if ($isBuyOffer)
+			$price = $this->float2rat($buyingAmount / $sellingAmount);
+		else
+			$price = $this->float2rat($sellingAmount / $buyingAmount);
 
 		$price = new \ZuluCrypto\StellarSdk\XdrModel\Price($price[0], $price[1]);
 

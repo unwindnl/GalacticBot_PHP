@@ -545,7 +545,7 @@ abstract class Bot
 		}
 		else
 		{
-			$trade = $this->settings->getAPI()->manageOffer($this, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset());
+			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset());
 		}
 
 		$lastTrade = $this->data->getLastTrade();
@@ -596,7 +596,7 @@ abstract class Bot
 		}
 		else
 		{
-			$trade = $this->settings->getAPI()->manageOffer($this, $processingTime, $this->settings->getCounterAsset(), $budget, $this->settings->getBaseAsset(), $offerIDToUpdate, $cancelOffer);
+			$trade = $this->settings->getAPI()->manageOffer($this, false, $processingTime, $this->settings->getCounterAsset(), $budget, $this->settings->getBaseAsset(), $offerIDToUpdate, $cancelOffer);
 		}
 
 		if ($cancelOffer)
