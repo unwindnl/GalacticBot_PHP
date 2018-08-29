@@ -481,7 +481,7 @@ abstract class Bot
 	}
 
 	/**
-	* Returns a sum of total holdings converted to the base asset.
+	* Returns a sum of total holdings (converted to the base asset when needed).
 	*
 	* @return float
 	*/
@@ -495,11 +495,13 @@ abstract class Bot
 
 		if ($lastTrade && $lastTrade->getType() == Trade::TYPE_BUY)
 		{
-			$sum += $counterAssetAmmount * $lastTrade->getPaidPrice();
+			$price = 1/$this->data->getAssetValueForTime(Time::now());
+			$sum += $counterAssetAmmount * $price;
 		}
 		else if ($lastTrade && $previousTrade->getType() == Trade::TYPE_BUY)
 		{
-			$sum += $counterAssetAmmount * $previousTrade->getPaidPrice();
+			$price = 1/$this->data->getAssetValueForTime(Time::now());
+			$sum += $counterAssetAmmount * $price;
 		}
 
 		return $sum;
