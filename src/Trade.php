@@ -225,7 +225,7 @@ class Trade
 			else
 				$amountTotal = $this->sellAmount;
 
-			$amountTotal = (float)number_format($amountTotal, 7, '.', '');
+			$amountTotal = (float)number_format($amountTotal, 7, '.', '') - $this->fee;
 			$amountLeft = $amountTotal;
 
 			$claimedOffers = json_decode($this->claimedOffers);
@@ -252,10 +252,7 @@ class Trade
 			else
 				$this->spentAmount = number_format($this->fee + $this->boughtAmount, 7);
 
-			if ($this->type == self::TYPE_BUY)
-				$this->amountRemaining = number_format($this->sellAmount - $this->spentAmount, 7);
-			else
-				$this->amountRemaining = number_format(($this->sellAmount * $this->price) - $this->spentAmount, 7);
+			$this->amountRemaining = number_format($amountLeft, 7);
 			
 			$this->paidPrice = number_format(1 / ($amountFulfilled / $this->spentAmount), 7);		
 		}
