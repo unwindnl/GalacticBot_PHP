@@ -323,7 +323,7 @@ class Trade
 		if ($o->type == self::TYPE_BUY)
 			$o->sellAmount = $operation->getAmount()->getScaledValue();
 		else
-			$o->sellAmount = $operation->getAmount()->getScaledValue() * (1/$o->price);
+			$o->sellAmount = $operation->getAmount()->getScaledValue();
 
 		$o->fee = $paidFee;
 		
