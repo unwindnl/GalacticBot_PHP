@@ -95,7 +95,7 @@ class Trade
 	function getCreatedAt() { return new \DateTime($this->createdAt); }
 	function getProcessedAt() { return new \DateTime($this->processedAt); }
 
-	function getFillPercentage() { return new \DateTime($this->fillPercentage); }
+	function getFillPercentage() { return $this->fillPercentage; }
 
 	function getIsFilledCompletely()
 	{
