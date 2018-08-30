@@ -49,6 +49,11 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$this->directSet("setting_" . $name, $value);
 	}
 
+	function getBot()
+	{
+		return $this->bot;
+	}
+
 	private function excludeLastTradeFromOffers(Array $offers)
 	{
 		$lastTrade = $this->getLastTrade();

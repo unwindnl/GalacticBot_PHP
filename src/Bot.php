@@ -362,7 +362,6 @@ abstract class Bot
 			$this->shouldTrade = false;
 
 		if (!$time->isAfter($this->lastProcessingTime)) {
-			$this->data->logVerbose("Already processed this timeframe (" . $time->toString() . ")");
 			return false;
 		}
 
@@ -508,7 +507,7 @@ abstract class Bot
 			$price = 1/$this->data->getAssetValueForTime(Time::now());
 			$sum += $counterAssetAmmount * $price;
 		}
-		else if ($lastTrade && $previousTrade->getType() == Trade::TYPE_BUY)
+		else if ($lastTrade && $previousTrade && $previousTrade->getType() == Trade::TYPE_BUY)
 		{
 			$price = 1/$this->data->getAssetValueForTime(Time::now());
 			$sum += $counterAssetAmmount * $price;

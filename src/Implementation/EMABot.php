@@ -129,9 +129,7 @@ class EMABot extends \GalacticBot\Bot
 
 		$lastCompletedTrade = $this->data->getLastCompletedTrade();
 
-		$this->data->logVerbose("- lastTrade = " . ($lastTrade ? "#" . $lastTrade->getID() : "none"));
-		$this->data->logVerbose("- state = {$state}");
-		$this->data->logVerbose("- tradeState = {$tradeState}");
+		$this->data->logVerbose("- state = {$state}, tradeState = {$tradeState}");
 
 		if ($gotFullBuffers && $tradeState == self::TRADE_STATE_BUFFERING)
 			$tradeState = self::TRADE_STATE_NONE;
