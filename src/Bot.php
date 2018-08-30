@@ -560,10 +560,25 @@ abstract class Bot
 			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset(), $offerIDToUpdate, $cancelOffer);
 		}
 
-		$lastTrade = $this->data->getLastTrade();
+		if ($cancelOffer)
+		{
+			return $trade;
+		}
 
-		if ($lastTrade)
-			$trade->setPreviousBotTradeID($lastTrade->getID());
+		if ($updateExistingTrade)
+		{
+			$updateExistingTrade->setState(Trade::STATE_REPLACED);
+			$this->data->saveTrade($updateExistingTrade);
+
+			$trade->setPreviousBotTradeID($updateExistingTrade->getPreviousBotTradeID());
+		}
+		else
+		{
+			$lastTrade = $this->data->getLastTrade();
+
+			if ($lastTrade)
+				$trade->setPreviousBotTradeID($lastTrade->getID());
+		}
 
 		$trade->setProcessedAt($processingTime->getDateTime());
 		$this->data->addTrade($trade);
