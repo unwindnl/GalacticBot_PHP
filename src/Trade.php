@@ -222,44 +222,45 @@ class Trade
 
 		if ($this->claimedOffers)
 		{
-			if ($this->type == self::TYPE_BUY)
-				$amountTotal = $this->sellAmount * 1/$this->price;
-			else
-				$amountTotal = $this->sellAmount * $this->price;
-
-			$amountTotal = (float)number_format($amountTotal, 7, '.', '') - $this->fee;
-			$amountLeft = $amountTotal;
-
 			$claimedOffers = json_decode($this->claimedOffers);
 
 			$this->boughtAmount = 0;
 
+			if ($this->type == self::TYPE_BUY)
+				$amountWanted = (float)number_format($this->sellAmount * 1/$this->price, 7);
+			else
+				$amountWanted = (float)number_format($this->sellAmount * $this->price, 7);
+
+			$this->amountRemaining = $amountWanted;
+
 			foreach($claimedOffers AS $offer)
 			{
 				$this->boughtAmount += $offer->sellingAmount;
-				$amountLeft -= $offer->sellingAmount;
+				$this->amountRemaining -= $offer->sellingAmount;
 			}
+		
+			$this->amountRemaining = (float)number_format($this->amountRemaining, 7);
 
-			$amountFulfilled = $amountTotal-$amountLeft;
-
-			$fillPercentage = $amountFulfilled / $amountTotal;
+			$amountFulfilled = $amountWanted - $this->amountRemaining;
+			$fillPercentage = $amountFulfilled / $amountWanted;
 
 			$this->fillPercentage = round($fillPercentage * 100 * 100) / 100;
-		
+			
 			if ($this->fillPercentage >= 99.999)
 				$this->state = self::STATE_FILLED;
-	
-			if ($this->type == self::TYPE_BUY)
-				$this->spentAmount = number_format($this->fee + ($this->boughtAmount * $this->price), 7);
-			else
-				$this->spentAmount = number_format($this->fee + $this->boughtAmount, 7);
-
-			$this->amountRemaining = number_format($amountLeft, 7);
+				
+			$this->amountRemaining = number_format($this->amountRemaining, 7);
 			
 			if ($this->type == self::TYPE_BUY)
-				$this->paidPrice = number_format(1 / ($amountFulfilled / $this->spentAmount), 7);		
+			{
+				$this->spentAmount = number_format($this->boughtAmount * $this->price, 7);
+				$this->paidPrice = $this->sellAmount / $this->boughtAmount;
+			}
 			else
-				$this->paidPrice = number_format($this->spentAmount / $this->sellAmount, 7);		
+			{
+				$this->spentAmount = number_format($this->boughtAmount * (1/$this->price), 7);
+				$this->paidPrice = $this->boughtAmount / $this->sellAmount;
+			}
 		}
 		else
 		{
