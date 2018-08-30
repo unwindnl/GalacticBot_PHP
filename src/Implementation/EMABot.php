@@ -13,6 +13,7 @@ class EMABot extends \GalacticBot\Bot
 	const TRADE_STATE_BUFFERING					= "BUFFERING";
 	const TRADE_STATE_BUY_DELAY					= "BUY_DELAY";
 	const TRADE_STATE_BUY_WAIT_NEGATIVE_TREND	= "BUY_DELAY_NEG";
+	const TRADE_STATE_BUY_PENDING				= "BUY_PENDING";
 
 	const TRADE_STATE_SELL_WAIT					= "SELL_WAIT";
 	const TRADE_STATE_SELL_DELAY				= "SELL_DELAY";
@@ -61,6 +62,7 @@ class EMABot extends \GalacticBot\Bot
 
 			case self::TRADE_STATE_BUY_DELAY:					$label = "Delaying to buy $counter"; break;
 			case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:		$label = "Negative trend, wait for bottom"; break;
+			case self::TRADE_STATE_BUY_PENDING:					$label = "Waiting for buy order to fill"; break;
 
 			case self::TRADE_STATE_SELL_WAIT:					$label = "Waiting for rise to sell $counter"; break;
 			case self::TRADE_STATE_SELL_DELAY:					$label = "Delaying to sell $counter"; break;
@@ -159,7 +161,7 @@ class EMABot extends \GalacticBot\Bot
 						}
 					break;
 			}
-					
+						
 			switch($tradeState)
 			{
 				case self::TRADE_STATE_DIP_WAIT:
@@ -173,6 +175,35 @@ class EMABot extends \GalacticBot\Bot
 					
 			switch($tradeState)
 			{
+				case self::TRADE_STATE_BUY_PENDING:
+						if ($lastTrade)
+						{
+							if ($lastTrade->getIsFilledCompletely())
+							{
+								$tradeState = self::TRADE_STATE_SELL_WAIT;
+							}
+							else if ($lastTrade->getFillPercentage() == 0)
+							{
+								if ($lastTrade->getAgeInMinutes($time) > $this->settings->getBuyFillWaitMinutes())
+								{
+									$this->data->logWarning("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
+
+									$this->cancel($time, $lastTrade);
+
+									$tradeState = self::TRADE_STATE_NONE;
+								}
+							}
+						}
+						else
+						{
+							$this->data->logWarning("We where waiting for a buy order to complete, but the order is gone! Resetting our state.");
+							$tradeState = self::TRADE_STATE_NONE;
+						}
+					break;
+			}
+
+			switch($tradeState)
+			{
 				case self::TRADE_STATE_DIP_WAIT:
 				case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:
 						// Handled above
@@ -184,10 +215,8 @@ class EMABot extends \GalacticBot\Bot
 						if ($lastTrade && $lastTrade->getType() == \GalacticBot\Trade::TYPE_BUY)
 						{
 							// This is a temporary sanity check
-							// When the bot crashes for some reason and the latest state isn't saved
-							// We could end up here, we bought the counter asset but we're waiting to buy
-							// So we'll correct the stat here
-							$tradeState = self::TRADE_STATE_SELL_WAIT;
+							// When the bot crashes for some reason and the latest state isn't saved we could end up here
+							$tradeState = self::TRADE_STATE_BUY_PENDING;
 						}
 						else if ($this->shortTermValue > $this->longTermValue && $this->shortTermSaleValue > $this->longTermValue) // Should buy?
 						{
@@ -211,7 +240,7 @@ class EMABot extends \GalacticBot\Bot
 										}
 										else if ($this->buy($time))
 										{
-											$tradeState = self::TRADE_STATE_SELL_WAIT;
+											$tradeState = self::TRADE_STATE_BUY_PENDING;
 										}
 										else
 										{

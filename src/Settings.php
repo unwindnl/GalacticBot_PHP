@@ -41,6 +41,11 @@ class Settings
 	private $buyDelayMinutes = null;
 			
 	/*
+	* How long to wait before cancelling a buy order which doesn't get filled
+	*/
+	private $buyFillWaitMinutes = null;
+			
+	/*
 	* How long to hold the counter asset at minimum before even checking if we need to sell
 	*/
 	private $minimumHoldMinutes = null;
@@ -110,6 +115,7 @@ class Settings
 	public function loadFromDataInterface()
 	{
 		$this->buyDelayMinutes = $this->dataInterface->getSetting("buyDelayMinutes", 0);
+		$this->buyFillWaitMinutes = $this->dataInterface->getSetting("buyFillWaitMinutes", 5);
 		$this->minimumHoldMinutes = $this->dataInterface->getSetting("minimumHoldMinutes", 0); 
 		$this->prognosisWindowMinutes = $this->dataInterface->getSetting("prognosisWindowMinutes", 30); // Cannot be larger than 'mediumTermSampleCount' setting
 		$this->minimumProfitPercentage = $this->dataInterface->getSetting("minimumProfitPercentage", 0.2);
@@ -184,6 +190,11 @@ class Settings
 	* Setting, see this class variables for more information
 	*/
 	public function getBuyDelayMinutes() { return $this->buyDelayMinutes; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getBuyFillWaitMinutes() { return $this->buyFillWaitMinutes; }
 			
 	/**
 	* Setting, see this class variables for more information
