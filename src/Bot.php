@@ -164,6 +164,16 @@ abstract class Bot
 	}
 
 	/**
+	* Enable trading; use this to enable calling the buy, cancel and sell methods from outside the work method
+	*
+	* @return void
+	*/
+	public function enableTrades()
+	{
+		$this->shouldTrade = true;
+	}
+
+	/**
 	* Sets the bot state to 'should reset'. For this to take affect the bot should be running (see the demo for a worker script). See the performFullReset method for more information.
 	*
 	* @return void
