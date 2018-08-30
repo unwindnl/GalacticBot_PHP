@@ -217,7 +217,10 @@ class EMABot extends \GalacticBot\Bot
 							}
 								
 							if ($tradeState == self::TRADE_STATE_BUY_DELAY || $tradeState == self::TRADE_STATE_BUY_PENDING) {
-								if ($startOfBuyDelayDate->getAgeInMinutes($time) >= $this->settings->getBuyDelayMinutes()) {
+								if (
+									$startOfBuyDelayDate->getAgeInMinutes($time) >= $this->settings->getBuyDelayMinutes()
+								||	$tradeState == self::TRADE_STATE_BUY_PENDING
+								) {
 									if ($this->predictionDirection >= 0) {
 										$startOfBuyDelayDate = null;
 										
@@ -242,7 +245,7 @@ class EMABot extends \GalacticBot\Bot
 
 												$this->data->logVerbose("Buy order changed.");
 											}
-											else if ($lastTrade->getAgeInMinutes($time) > $this->settings->getBuyFillWaitMinutes())
+											else if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->getBuyFillWaitMinutes())
 											{
 												$this->data->logVerbose("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
 
@@ -263,6 +266,14 @@ class EMABot extends \GalacticBot\Bot
 									} else {
 										$tradeState = self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND;
 									}
+								}
+								else if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->getBuyFillWaitMinutes())
+								{
+									$this->data->logVerbose("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
+
+									$this->cancel($time, $lastTrade);
+
+									$tradeState = self::TRADE_STATE_NONE;
 								}
 							}
 						}
