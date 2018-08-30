@@ -261,8 +261,19 @@ class EMABot extends \GalacticBot\Bot
 											$this->data->logWarning("Trade failed to create (this also happens when a bot is paused).");
 											$tradeState = self::TRADE_STATE_DIP_WAIT;
 										}
-									} else {
-										$tradeState = self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND;
+									} else /* negative trend: $this->predictionDirection < 0 */ {
+										if ($tradeState == self::TRADE_STATE_BUY_PENDING)
+										{
+											$this->data->logVerbose("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
+
+											$this->cancel($time, $lastTrade);
+
+											$tradeState = self::TRADE_STATE_NONE;
+										}
+										else
+										{
+											$tradeState = self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND;
+										}
 									}
 								}
 								else if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->getBuyFillWaitMinutes())
