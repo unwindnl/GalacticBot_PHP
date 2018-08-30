@@ -531,12 +531,14 @@ abstract class Bot
 	*
 	* @return Trade or null
 	*/
-	function buy(Time $processingTime)
+	function buy(Time $processingTime, Trade $updateExistingTrade = null)
 	{
 		if (!$this->shouldTrade)
 			return null;
 
 		$budget = $this->getCurrentBaseAssetBudget();
+
+		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
 
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
 		{
@@ -545,7 +547,7 @@ abstract class Bot
 		}
 		else
 		{
-			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset());
+			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset(), $offerIDToUpdate);
 		}
 
 		$lastTrade = $this->data->getLastTrade();

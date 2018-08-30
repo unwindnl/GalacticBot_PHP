@@ -186,6 +186,11 @@ class Trade
 					$this->offerID = $offer->offerID;
 		}
 
+		if (!$this->offerID) {
+			$bot->getDataInterface()->logError("Cannot update trade without an offerID.");
+			exit(); // Temporary shut down so we can track this
+		}
+
 		if ($this->offerID) {
 			$offerInfo = $api->getOfferInfoByID($bot, $this->offerID);
 

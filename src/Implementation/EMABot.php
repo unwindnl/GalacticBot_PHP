@@ -176,25 +176,11 @@ class EMABot extends \GalacticBot\Bot
 			switch($tradeState)
 			{
 				case self::TRADE_STATE_BUY_PENDING:
-						if ($lastTrade)
+						if ($lastTrade && $lastTrade->getIsFilledCompletely())
 						{
-							if ($lastTrade->getIsFilledCompletely())
-							{
-								$tradeState = self::TRADE_STATE_SELL_WAIT;
-							}
-							else if ($lastTrade->getFillPercentage() == 0)
-							{
-								if ($lastTrade->getAgeInMinutes($time) > $this->settings->getBuyFillWaitMinutes())
-								{
-									$this->data->logWarning("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
-
-									$this->cancel($time, $lastTrade);
-
-									$tradeState = self::TRADE_STATE_NONE;
-								}
-							}
+							$tradeState = self::TRADE_STATE_SELL_WAIT;
 						}
-						else
+						else if (!$lastTrade)
 						{
 							$this->data->logWarning("We where waiting for a buy order to complete, but the order is gone! Resetting our state.");
 							$tradeState = self::TRADE_STATE_NONE;
@@ -211,14 +197,16 @@ class EMABot extends \GalacticBot\Bot
 
 				case self::TRADE_STATE_NONE:
 				case self::TRADE_STATE_BUY_DELAY:
+				case self::TRADE_STATE_BUY_PENDING:
 				case "":
-						if ($lastTrade && $lastTrade->getType() == \GalacticBot\Trade::TYPE_BUY)
+						if ($tradeState != self::TRADE_STATE_BUY_PENDING && $lastTrade && $lastTrade->getType() == \GalacticBot\Trade::TYPE_BUY)
 						{
 							// This is a temporary sanity check
 							// When the bot crashes for some reason and the latest state isn't saved we could end up here
 							$tradeState = self::TRADE_STATE_BUY_PENDING;
 						}
-						else if ($this->shortTermValue > $this->longTermValue && $this->shortTermSaleValue > $this->longTermValue) // Should buy?
+
+						if ($this->shortTermValue > $this->longTermValue && $this->shortTermSaleValue > $this->longTermValue) // Should buy?
 						{
 							if (!$startOfBuyDelayDate)
 								$startOfBuyDelayDate = clone $time;
@@ -228,15 +216,40 @@ class EMABot extends \GalacticBot\Bot
 								$tradeState = self::TRADE_STATE_BUY_DELAY;
 							}
 								
-							if ($tradeState == self::TRADE_STATE_BUY_DELAY) {
+							if ($tradeState == self::TRADE_STATE_BUY_DELAY || $tradeState == self::TRADE_STATE_BUY_PENDING) {
 								if ($startOfBuyDelayDate->getAgeInMinutes($time) >= $this->settings->getBuyDelayMinutes()) {
 									if ($this->predictionDirection >= 0) {
-										$tradeState = self::TRADE_STATE_NONE;
 										$startOfBuyDelayDate = null;
 										
 										if (!$time->isNow() && $this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
 										{
 											$this->data->logWarning("Not buying based on old data (live mode).");
+										}
+										else if ($tradeState == self::TRADE_STATE_BUY_PENDING)
+										{
+											$this->data->logVerbose("We are waiting for an buy order to complete, but the price has changed lets update our order.");
+										
+											$lastOrderPrice = number_format($lastTrade->getPrice(), 7);
+											$currentPrice = number_format(1/$sample, 7);
+								
+											$priceChanged = $lastOrderPrice != $currentPrice;
+
+											if ($priceChanged)
+											{
+												$this->buy($time, $lastTrade);
+
+												$tradeState = self::TRADE_STATE_BUY_PENDING;
+
+												$this->data->logVerbose("Buy order changed.");
+											}
+											else if ($lastTrade->getAgeInMinutes($time) > $this->settings->getBuyFillWaitMinutes())
+											{
+												$this->data->logVerbose("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
+
+												$this->cancel($time, $lastTrade);
+
+												$tradeState = self::TRADE_STATE_NONE;
+											}
 										}
 										else if ($this->buy($time))
 										{
@@ -251,6 +264,17 @@ class EMABot extends \GalacticBot\Bot
 										$tradeState = self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND;
 									}
 								}
+							}
+						}
+						else if ($tradeState == self::TRADE_STATE_BUY_PENDING)
+						{
+							if ($lastTrade->getAgeInMinutes($time) > $this->settings->getBuyFillWaitMinutes())
+							{
+								$this->data->logWarning("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
+
+								$this->cancel($time, $lastTrade);
+
+								$tradeState = self::TRADE_STATE_NONE;
 							}
 						}
 						else
