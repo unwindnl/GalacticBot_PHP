@@ -3,7 +3,7 @@
 namespace GalacticBot;
 
 /*
-* A Trade is an offering of an asset which is fulfilled or is not fulfilled.
+* A Trade is an offering on the Stellar network to trade an asset for a fixed price
 */
 class Trade
 {
@@ -184,11 +184,6 @@ class Trade
 			foreach($claimedOffers AS $offer)
 				if ($offer->offerID)
 					$this->offerID = $offer->offerID;
-		}
-
-		if (!$this->offerID) {
-			$bot->getDataInterface()->logError("Cannot update trade without an offerID.");
-			exit(); // Temporary shut down so we can track this
 		}
 
 		if ($this->offerID) {

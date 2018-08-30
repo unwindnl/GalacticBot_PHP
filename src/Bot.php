@@ -541,7 +541,7 @@ abstract class Bot
 	*
 	* @return Trade or null
 	*/
-	function buy(Time $processingTime, Trade $updateExistingTrade = null)
+	function buy(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false)
 	{
 		if (!$this->shouldTrade)
 			return null;
@@ -557,7 +557,7 @@ abstract class Bot
 		}
 		else
 		{
-			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset(), $offerIDToUpdate);
+			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset(), $offerIDToUpdate, $cancelOffer);
 		}
 
 		$lastTrade = $this->data->getLastTrade();
@@ -580,7 +580,10 @@ abstract class Bot
 	{
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
 		{
-			$this->sell($processingTime, $trade, true);
+			if ($trade->getType() == Trade::TYPE_SELL)
+				$this->sell($processingTime, $trade, true);
+			else
+				$this->buy($processingTime, $trade, true);
 		}
 
 		$trade->setState(Trade::STATE_CANCELLED);
