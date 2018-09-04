@@ -55,6 +55,10 @@ class ExtendedAccount extends \ZuluCrypto\StellarSdk\Model\Account
 	public static function fromHorizonResponse(\ZuluCrypto\StellarSdk\Horizon\Api\HorizonResponse $response)
     {
         $rawData = $response->getRawData();
+
+		if (isset($rawData["status"]) && $rawData["status"] == 404)
+			return null;
+		
         $object = new ExtendedAccount($rawData['id']);
         $object->accountId = $rawData['account_id'];
         $object->sequence = $rawData['sequence'];

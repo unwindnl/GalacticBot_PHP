@@ -434,18 +434,21 @@ abstract class Bot
 
 		$account = $this->getAccountInfo();
 
-		foreach($account->getBalances() as $balance)
+		if ($account)
 		{
-			$assetCode = $balance->getAssetCode();
-
-			if ($assetCode == "XLM")
-				$assetCode = null;
-
-			if (
-				$this->settings->getBaseAsset()->getAssetCode() == $assetCode
-			)
+			foreach($account->getBalances() as $balance)
 			{
-				return $balance->getBalance() - $account->getMinimumRequirement() - $this->settings->getBaseAssetReservationAmount();
+				$assetCode = $balance->getAssetCode();
+
+				if ($assetCode == "XLM")
+					$assetCode = null;
+
+				if (
+					$this->settings->getBaseAsset()->getAssetCode() == $assetCode
+				)
+				{
+					return $balance->getBalance() - $account->getMinimumRequirement() - $this->settings->getBaseAssetReservationAmount();
+				}
 			}
 		}
 
@@ -471,18 +474,21 @@ abstract class Bot
 
 		$account = $this->getAccountInfo();
 
-		foreach($account->getBalances() as $balance)
+		if ($account)
 		{
-			$assetCode = $balance->getAssetCode();
-
-			if ($assetCode == "XLM")
-				$assetCode = null;
-
-			if (
-				$this->settings->getCounterAsset()->getAssetCode() == $assetCode
-			)
+			foreach($account->getBalances() as $balance)
 			{
-				return $balance->getBalance();
+				$assetCode = $balance->getAssetCode();
+
+				if ($assetCode == "XLM")
+					$assetCode = null;
+
+				if (
+					$this->settings->getCounterAsset()->getAssetCode() == $assetCode
+				)
+				{
+					return $balance->getBalance();
+				}
 			}
 		}
 
