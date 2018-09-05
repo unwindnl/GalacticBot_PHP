@@ -384,6 +384,42 @@ abstract class Bot
 	}
 
 	/**
+	* Loads, caches and returns balances for the bot's Stellar account.
+	*
+	* @return float
+	*/
+	function getAccountBalances()
+	{
+		$balances = $this->data->get("acountInfoBalances_Data");
+		$date = $this->data->get("acountInfoBalances_Date");
+
+		if ($balances && $date)
+		{
+			$date = Time::fromString($date);
+
+			if ($date->isNow())
+			{
+				return unserialize($balances);
+			}
+		}
+
+		$date = Time::now();
+		$account = $this->getAccountInfo();
+		$balances = [];
+		
+		if ($account)
+		{
+			$balances = $account->getBalances();
+		}
+
+		$this->data->set("acountInfoBalances_Data", serialize($balances));
+		$this->data->set("acountInfoBalances_Date", $date->toString());
+		$this->data->save();
+
+		return $balances;
+	}
+
+	/**
 	* Loads information (balance and minimum requirement) for the bot's Stellar account.
 	*
 	* @return float
@@ -412,6 +448,35 @@ abstract class Bot
 		return $this->accountInfo;
 	}
 
+	function getMinimumXLMRequirement()
+	{
+		$minimum = $this->data->get("acountInfoMinimum_Value");
+		$date = $this->data->get("acountInfoMinimum_Date");
+
+		if ($minimum && $date)
+		{
+			$date = Time::fromString($date);
+
+			if ($date->isNow())
+				return $minimum;
+		}
+
+		$date = Time::now();
+		$account = $this->getAccountInfo();
+		$minimum = null;
+		
+		if ($account)
+		{
+			$minimum = $account->getMinimumRequirement();
+		}
+
+		$this->data->set("acountInfoMinimum_Value", $minimum);
+		$this->data->set("acountInfoMinimum_Date", $date->toString());
+		$this->data->save();
+
+		return $minimum;
+	}
+
 	/**
 	* Returns total amount this Bot has in the base asset.
 	*
@@ -432,11 +497,11 @@ abstract class Bot
 			return 100;
 		}
 
-		$account = $this->getAccountInfo();
+		$balances = $this->getAccountBalances();
 
-		if ($account)
+		if ($balances)
 		{
-			foreach($account->getBalances() as $balance)
+			foreach($balances as $balance)
 			{
 				$assetCode = $balance->getAssetCode();
 
@@ -447,7 +512,7 @@ abstract class Bot
 					$this->settings->getBaseAsset()->getAssetCode() == $assetCode
 				)
 				{
-					return $balance->getBalance() - $account->getMinimumRequirement() - $this->settings->getBaseAssetReservationAmount();
+					return $balance->getBalance() - $this->getMinimumXLMRequirement() - $this->settings->getBaseAssetReservationAmount();
 				}
 			}
 		}
@@ -472,11 +537,11 @@ abstract class Bot
 			return 0;
 		}
 
-		$account = $this->getAccountInfo();
+		$balances = $this->getAccountBalances();
 
-		if ($account)
+		if ($balances)
 		{
-			foreach($account->getBalances() as $balance)
+			foreach($balances as $balance)
 			{
 				$assetCode = $balance->getAssetCode();
 
