@@ -220,6 +220,11 @@ abstract class Bot
 		);
 	}
 
+	function getStateDescription()
+	{
+		return $this->getStateInfo()["label"];
+	}
+
 	/**
 	* Returns the current trade state the Bot is in. Value must be one of defined TRADE_STATE_ constants in this class or from the implemented Bot instance.
 	*
@@ -242,6 +247,11 @@ abstract class Bot
 			"state" => $state,
 			"label" => $label
 		);
+	}
+
+	function getTradeStateDescription()
+	{
+		return $this->getTradeStateInfo()["label"];
 	}
 
 	/**
