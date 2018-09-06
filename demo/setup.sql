@@ -23,6 +23,7 @@ CREATE TABLE `BotTrade` (
   `type` varchar(64) DEFAULT NULL,
   `state` varchar(32) NOT NULL,
   `offerID` varchar(255) DEFAULT NULL,
+  `transactionEnvelopeXdr` text,
   `claimedOffers` text,
   `sellAmount` double DEFAULT NULL,
   `spentAmount` double DEFAULT NULL,
@@ -39,7 +40,8 @@ CREATE TABLE `BotTrade` (
   `processedAt` datetime NOT NULL,
   `updatedAt` datetime DEFAULT NULL,
   PRIMARY KEY (`ID`),
-  KEY `search` (`botID`,`processedAt`)
+  KEY `search` (`botID`,`processedAt`),
+  KEY `forBot` (`botID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
