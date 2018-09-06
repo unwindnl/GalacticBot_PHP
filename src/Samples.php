@@ -73,19 +73,6 @@ class Samples
 	}
 
 	/*
-	* Fills the sample buffer with a specific value
-	*/
-	function fillWithValue($value)
-	{
-		$this->samples = [];
-
-		for($i=0; $i<$this->maxLength; $i++)
-		{
-			$this->samples[] = $value;
-		}
-	}
-
-	/*
 	* Checks to see if the buffer is full or not
 	* @return bool
 	*/
@@ -123,13 +110,9 @@ class Samples
 	* @return Array of exponential moving averages
 	*/
 	function getExponentialMovingAverage() {
-		$m = count($this->samples);
-		
-		if ($m == 0)
-			return null;
-
 		$n = count($this->samples)/2;
-		$α = 2 / ($n + 1);
+		$m   = count($this->samples);
+		$α   = 2 / ($n + 1);
 		$EMA = [];
 
 		// Start off by seeding with the first data point

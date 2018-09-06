@@ -31,8 +31,6 @@ abstract class Bot
 	*/
 	const TRADE_STATE_NONE						= "";
 
-	protected $settingDefaults = [];
-
 	protected $settings;
 	protected $data;
 
@@ -45,16 +43,6 @@ abstract class Bot
 	* Time we're processing, see work() method
 	*/
 	private $currentTime = null;
-
-	/**
-	* Information about the bot's account
-	*/
-	private $accountInfo = null;
-
-	/**
-	* Time at which the information about the bot's account was last updated
-	*/
-	private $lastAccountInfoUpdate = null;
 
 	/**
 	* Constructs a new bot instance.
@@ -104,11 +92,6 @@ abstract class Bot
 	* @return void
 	*/
 	abstract protected function process(\GalacticBot\Time $time, $sample);
-
-	public function getSettingDefaults()
-	{
-		return $this->settingDefaults;
-	}
 
 	/**
 	* Returns last fully processed date & time.
@@ -171,16 +154,6 @@ abstract class Bot
 	}
 
 	/**
-	* Enable trading; use this to enable calling the buy, cancel and sell methods from outside the work method
-	*
-	* @return void
-	*/
-	public function enableTrades()
-	{
-		$this->shouldTrade = true;
-	}
-
-	/**
 	* Sets the bot state to 'should reset'. For this to take affect the bot should be running (see the demo for a worker script). See the performFullReset method for more information.
 	*
 	* @return void
@@ -227,11 +200,6 @@ abstract class Bot
 		);
 	}
 
-	function getStateDescription()
-	{
-		return $this->getStateInfo()["label"];
-	}
-
 	/**
 	* Returns the current trade state the Bot is in. Value must be one of defined TRADE_STATE_ constants in this class or from the implemented Bot instance.
 	*
@@ -254,11 +222,6 @@ abstract class Bot
 			"state" => $state,
 			"label" => $label
 		);
-	}
-
-	function getTradeStateDescription()
-	{
-		return $this->getTradeStateInfo()["label"];
 	}
 
 	/**
@@ -307,13 +270,6 @@ abstract class Bot
 	*/
 	public function work()
 	{
-		date_default_timezone_set("UTC");
-
-		$timezone = date_default_timezone_get();
-
-		if ($timezone != "UTC")
-			exit("Cannot set timezone to UTC");
-
 		$this->currentTime = new Time($this->lastProcessingTime);
 
 		$ticks = 0;
@@ -379,16 +335,11 @@ abstract class Bot
 			$this->shouldTrade = false;
 
 		if (!$time->isAfter($this->lastProcessingTime)) {
+			$this->data->logVerbose("Already processed this timeframe (" . $time->toString() . ")");
 			return false;
 		}
 
 		$this->data->logVerbose("Processing timeframe (" . $time->toString() . ")");
-
-		$lastTrade = $this->data->getLastTrade();
-
-		// Update the last trade
-		if ($lastTrade && !$lastTrade->getIsFilledCompletely())
-			$lastTrade->updateFromAPIForBot($this->settings->getAPI(), $this);
 
 		$this->process($time, $sample);
 		
@@ -401,140 +352,25 @@ abstract class Bot
 	}
 
 	/**
-	* Loads, caches and returns balances for the bot's Stellar account.
-	*
-	* @return float
-	*/
-	function getAccountBalances()
-	{
-		$balances = $this->data->get("acountInfoBalances_Data");
-		$date = $this->data->get("acountInfoBalances_Date");
-
-		if ($balances && $date)
-		{
-			$date = Time::fromString($date);
-
-			if ($date->isNow())
-			{
-				return unserialize($balances);
-			}
-		}
-
-		$date = Time::now();
-		$account = $this->getAccountInfo();
-		$balances = [];
-		
-		if ($account)
-		{
-			$balances = $account->getBalances();
-		}
-
-		$this->data->set("acountInfoBalances_Data", serialize($balances));
-		$this->data->set("acountInfoBalances_Date", $date->toString());
-		$this->data->save();
-
-		return $balances;
-	}
-
-	/**
-	* Loads information (balance and minimum requirement) for the bot's Stellar account.
-	*
-	* @return float
-	*/
-	function getAccountInfo()
-	{
-		if (!$this->accountInfo || !$this->lastAccountInfoUpdate->isNow())
-		{
-			$info = $this->settings->getAPI()->getAccount($this);
-
-			if ($info)
-			{
-				$this->accountInfo = $info;
-				$this->lastAccountInfoUpdate = Time::now();
-			}
-			else if (!$this->accountInfo)
-			{
-				$this->data->logError("Cannot load account info from the Stellar network.");
-			}
-			else
-			{
-				$this->data->logWarning("Cannot load account info from the Stellar network. Using previously loaded data for now.");
-			}
-		}
-
-		return $this->accountInfo;
-	}
-
-	function getMinimumXLMRequirement()
-	{
-		$minimum = $this->data->get("acountInfoMinimum_Value");
-		$date = $this->data->get("acountInfoMinimum_Date");
-
-		if ($minimum && $date)
-		{
-			$date = Time::fromString($date);
-
-			if ($date->isNow())
-				return $minimum;
-		}
-
-		$date = Time::now();
-		$account = $this->getAccountInfo();
-		$minimum = null;
-		
-		if ($account)
-		{
-			$minimum = $account->getMinimumRequirement();
-		}
-
-		$this->data->set("acountInfoMinimum_Value", $minimum);
-		$this->data->set("acountInfoMinimum_Date", $date->toString());
-		$this->data->save();
-
-		return $minimum;
-	}
-
-	/**
 	* Returns total amount this Bot has in the base asset.
 	*
 	* @return float
 	*/
 	function getCurrentBaseAssetBudget()
 	{
-		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
-		{
-			$lastTrade = $this->data->getLastCompletedTrade();
+		$lastTrade = $this->data->getLastCompletedTrade();
 
-			if ($lastTrade && $lastTrade->getType() == Trade::TYPE_SELL)
-				return $lastTrade->getBoughtAmount();
-			else if ($lastTrade)
-				return 0; // we currently have the counter asset
+		if (!$lastTrade)
+			return $this->settings->getBaseAssetInitialBudget();
 
-			// Start a simulation with a fixed amount
-			return 100;
-		}
+		$sum = 0;
 
-		$balances = $this->getAccountBalances();
+		if ($lastTrade->getType() == Trade::TYPE_SELL)
+			$sum += $this->getAvailableBudgetForAsset($this->settings->getBaseAsset(), false);
+		else
+			$sum += $lastTrade->getAmountRemaining() * $lastTrade->getPaidPrice();
 
-		if ($balances)
-		{
-			foreach($balances as $balance)
-			{
-				$assetCode = $balance->getAssetCode();
-
-				if ($assetCode == "XLM")
-					$assetCode = null;
-
-				if (
-					$this->settings->getBaseAsset()->getAssetCode() == $assetCode
-				)
-				{
-					return $balance->getBalance() - $this->getMinimumXLMRequirement() - $this->settings->getBaseAssetReservationAmount();
-				}
-			}
-		}
-
-		return null;
+		return $sum;
 	}
 
 	/**
@@ -544,61 +380,54 @@ abstract class Bot
 	*/
 	function getCurrentCounterAssetBudget()
 	{
-		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
-		{
-			$lastTrade = $this->data->getLastCompletedTrade();
+		$lastTrade = $this->data->getLastCompletedTrade();
 
-			if ($lastTrade && $lastTrade->getType() == Trade::TYPE_BUY)
-				return $lastTrade->getBoughtAmount();
-
+		if (!$lastTrade)
 			return 0;
-		}
 
-		$balances = $this->getAccountBalances();
+		$sum = 0;
 
-		if ($balances)
-		{
-			foreach($balances as $balance)
-			{
-				$assetCode = $balance->getAssetCode();
+		if ($lastTrade->getType() == Trade::TYPE_BUY)
+			$sum += $this->getAvailableBudgetForAsset($this->settings->getCounterAsset(), false);
+		else
+			$sum += $lastTrade->getAmountRemaining();
 
-				if ($assetCode == "XLM")
-					$assetCode = null;
-
-				if (
-					$this->settings->getCounterAsset()->getAssetCode() == $assetCode
-				)
-				{
-					return $balance->getBalance();
-				}
-			}
-		}
-
-		return 0;
+		return $sum;
 	}
 
 	/**
-	* Returns a sum of total holdings (converted to the base asset when needed).
+	* Returns a sum of total holdings converted to the base asset.
 	*
 	* @return float
 	*/
 	function getTotalHoldings()
 	{
-		$sum = $this->getCurrentBaseAssetBudget();
-		$counterAssetAmmount = $this->getCurrentCounterAssetBudget();
-
 		$lastTrade = $this->data->getLastCompletedTrade();
-		$previousTrade = $lastTrade && $lastTrade->getPreviousBotTradeID() ? $this->data->getTradeByID($lastTrade->getPreviousBotTradeID()) : null;
 
-		if ($lastTrade && $lastTrade->getType() == Trade::TYPE_BUY)
+		if (!$lastTrade)
+			return $this->settings->getBaseAssetInitialBudget();
+		
+		$previousTrade = $lastTrade->getPreviousBotTradeID() ? $this->data->getTradeByID($lastTrade->getPreviousBotTradeID()) : null;
+
+		$sum = 0;
+
+		if ($lastTrade->getType() == Trade::TYPE_BUY)
 		{
-			$price = 1/$this->data->getAssetValueForTime(Time::now());
-			$sum += $counterAssetAmmount * $price;
+			$sum = $lastTrade->getBoughtAmount() * $lastTrade->getPaidPrice();
+
+			if ($previousTrade)
+			{
+				$sum += $previousTrade->getAmountRemaining();
+			}
 		}
-		else if ($lastTrade && $previousTrade && $previousTrade->getType() == Trade::TYPE_BUY)
+		else
 		{
-			$price = 1/$this->data->getAssetValueForTime(Time::now());
-			$sum += $counterAssetAmmount * $price;
+			$sum = $lastTrade->getBoughtAmount();
+
+			if ($previousTrade)
+			{
+				$sum += $previousTrade->getAmountRemaining() * $lastTrade->getPaidPrice();
+			}
 		}
 
 		return $sum;
@@ -611,16 +440,89 @@ abstract class Bot
 	*/
 	function getProfitPercentage()
 	{
-		$firstTrade = $this->data->getFirstCompletedTrade();
-
-		$start = $firstTrade ? $firstTrade->getSellAmount() : 0;
-
-		if (!$start)
-			return 0;
-
+		$start = $this->settings->getBaseAssetInitialBudget();
 		$current = $this->getTotalHoldings();
 
-		return round((($current / $start) - 1) * 10000)/100;
+		return (($current / $start) - 1) * 100;
+	}
+
+	/**
+	* Calculates how much this bot holds, and thus can be traded with, for a specific asset.
+	*
+	* @return float
+	*/
+	function getAvailableBudgetForAsset($asset, $onlyFromLastTrade = true)
+	{
+		$lastTrade = $this->data->getLastCompletedTrade();
+
+		if ($lastTrade)
+		{
+			if ($onlyFromLastTrade)
+			{
+				if (
+					$asset->getType() == $this->settings->getCounterAsset()->getType()
+				&&	$lastTrade->getType() != Trade::TYPE_BUY
+				)
+				{
+					$caller = debug_backtrace(0);
+					$caller = array_shift($caller);
+					$caller = $caller["file"] . " on line: #" . $caller["line"];
+
+					$this->data->save();
+
+					exit("TODO: How did this happen? Last trade type is invalid " . __FILE__ . " on line #" . __LINE__ . "\nCalled from: $caller\n");
+				}
+				else if (
+					$asset->getType() == $this->settings->getBaseAsset()->getType()
+				&&	$lastTrade->getType() != Trade::TYPE_SELL
+				)
+				{
+					$caller = debug_backtrace(0);
+					$caller = array_shift($caller);
+					$caller = $caller["file"] . " on line: #" . $caller["line"];
+
+					$this->data->save();
+
+					exit("TODO: How did this happen? Last trade type is invalid " . __FILE__ . " on line #" . __LINE__ . "\nCalled from: $caller\n");
+				}
+			}
+			else
+			{
+				if (
+					$asset->getType() == $this->settings->getBaseAsset()->getType()
+				&&	$lastTrade->getType() == Trade::TYPE_BUY
+				)
+				{
+					$lastTrade = $this->data->getTradeByID($lastTrade->getPreviousBotTradeID());
+				}
+				else if (
+					$asset->getType() == $this->settings->getCounterAsset()->getType()
+				&&	$lastTrade->getType() == Trade::TYPE_SELL
+				)
+				{
+					$lastTrade = $this->data->getTradeByID($lastTrade->getPreviousBotTradeID());
+				}
+			}
+
+			if ($lastTrade)
+			{
+				$previousTrade = $this->data->getTradeByID($lastTrade->getPreviousBotTradeID());
+
+				$budget = $lastTrade->getBoughtAmount();
+
+				if ($previousTrade)
+					$budget += $previousTrade->getAmountRemaining();
+			
+				return $budget;
+			}
+		}
+		else if ($asset->getType() == $this->settings->getBaseAsset()->getType())
+		{
+			// initial budget
+			return $this->settings->getBaseAssetInitialBudget();
+		}
+
+		return null;
 	}
 
 	/**
@@ -628,14 +530,12 @@ abstract class Bot
 	*
 	* @return Trade or null
 	*/
-	function buy(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false)
+	function buy(Time $processingTime)
 	{
 		if (!$this->shouldTrade)
 			return null;
 
-		$budget = $this->getCurrentBaseAssetBudget();
-
-		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
+		$budget = $this->getAvailableBudgetForAsset($this->settings->getBaseAsset());
 
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
 		{
@@ -644,28 +544,13 @@ abstract class Bot
 		}
 		else
 		{
-			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset(), $offerIDToUpdate, $cancelOffer);
+			$trade = $this->settings->getAPI()->manageOffer($this, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset());
 		}
 
-		if ($cancelOffer)
-		{
-			return $trade;
-		}
+		$lastTrade = $this->data->getLastTrade();
 
-		if ($updateExistingTrade)
-		{
-			$updateExistingTrade->setState(Trade::STATE_REPLACED);
-			$this->data->saveTrade($updateExistingTrade);
-
-			$trade->setPreviousBotTradeID($updateExistingTrade->getPreviousBotTradeID());
-		}
-		else
-		{
-			$lastTrade = $this->data->getLastTrade();
-
-			if ($lastTrade)
-				$trade->setPreviousBotTradeID($lastTrade->getID());
-		}
+		if ($lastTrade)
+			$trade->setPreviousBotTradeID($lastTrade->getID());
 
 		$trade->setProcessedAt($processingTime->getDateTime());
 		$this->data->addTrade($trade);
@@ -682,10 +567,7 @@ abstract class Bot
 	{
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
 		{
-			if ($trade->getType() == Trade::TYPE_SELL)
-				$this->sell($processingTime, $trade, true);
-			else
-				$this->buy($processingTime, $trade, true);
+			$this->sell($processingTime, $trade, true);
 		}
 
 		$trade->setState(Trade::STATE_CANCELLED);
@@ -702,7 +584,7 @@ abstract class Bot
 		if (!$this->shouldTrade)
 			return null;
 
-		$budget = $this->getCurrentCounterAssetBudget();
+		$budget = $this->getAvailableBudgetForAsset($this->settings->getCounterAsset());
 
 		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
 
@@ -713,7 +595,7 @@ abstract class Bot
 		}
 		else
 		{
-			$trade = $this->settings->getAPI()->manageOffer($this, false, $processingTime, $this->settings->getCounterAsset(), $budget, $this->settings->getBaseAsset(), $offerIDToUpdate, $cancelOffer);
+			$trade = $this->settings->getAPI()->manageOffer($this, $processingTime, $this->settings->getCounterAsset(), $budget, $this->settings->getBaseAsset(), $offerIDToUpdate, $cancelOffer);
 		}
 
 		if ($cancelOffer)

@@ -22,9 +22,7 @@ class Settings
 
 	// Base asset (usually XLM / native)
 	private $baseAsset = null;
-
-	// Base asset reservation - bot won't do anything with this amount of the base asset
-	private $baseAssetReservationAmount = null;
+	private $baseAssetInitialBudget = null;
 
 	// Counter asset, for example MOBI
 	private $counterAsset = null;
@@ -34,48 +32,89 @@ class Settings
 
 	// Secret of the Stellar account we're trading on
 	private $accountSecret = null;
-
-	// All defined settings for a bot, based on the BotClass::$settingDefaults array
-	private $settings = [];
+	
+	/*
+	* How long to wait before buying, after all checks for buying have passed
+	*/
+	private $buyDelayMinutes = null;
+			
+	/*
+	* How long to hold the counter asset at minimum before even checking if we need to sell
+	*/
+	private $minimumHoldMinutes = null;
+		
+	/*
+	* How long in minutes we should try to predict the price
+	*/
+	private $prognosisWindowMinutes = null;
+		
+	/*
+	* How much profit we want at minimum, doesn't sell if this percentage isn't met
+	*/
+	private $minimumProfitPercentage = null;
+		
+	/*
+	* How many samples are taken for the short term (buy in) EMA
+	*/
+	private $shortTermSampleCount = null;
+		
+	/*
+	* How many samples are taken for the short term (sale) EMA
+	*/
+	private $shortTermSaleSampleCount = null;
+		
+	/*
+	* How many samples are taken for the medium term EMA
+	*/
+	private $mediumTermSampleCount = null;
+		
+	/*
+	* How many samples are taken for the long term EMA
+	*/
+	private $longTermSampleCount = null;
 
 	/**
 	* Parses the Bot settings
 	*
 	* @param DataInterface $dataInterface An instance of a implemented DataInterface class, please make sure to give each bot instance it's own DataInterface class instance and not a copy/the same
-	* @param Array $options
+	* @param Array $settings
 	*/
 	public function __construct(
 		DataInterface $dataInterface,
-		Array $options
+		Array $settings
     ) {
 		$this->dataInterface = $dataInterface;
 
-		$this->ID = self::getFromArray($options, "ID");
-		$this->type = self::getFromArray($options, "type");
-		$this->name = self::getFromArray($options, "name");
+		$this->ID = self::getSetting($settings, "ID");
+		$this->type = self::getSetting($settings, "type");
+		$this->name = self::getSetting($settings, "name");
+		$this->baseAsset = self::getSetting($settings, "baseAsset");
+		$this->baseAssetInitialBudget = self::getSetting($settings, "baseAssetInitialBudget");
 
-		$this->baseAsset = self::getFromArray($options, "baseAsset");
-		$this->baseAssetReservationAmount = self::getOptionalFromArray($options, "baseAssetReservationAmount");
+		$this->API = self::getSetting($settings, "API");
+		$this->accountSecret = self::getSetting($settings, "accountSecret");
 
-		$this->API = self::getFromArray($options, "API");
-		$this->accountSecret = self::getFromArray($options, "accountSecret");
+		$this->counterAsset = self::getSetting($settings, "counterAsset");
 
-		$this->counterAsset = self::getFromArray($options, "counterAsset");
-
-		foreach($options AS $k => $v) {
-			throw new \Exception("Unknown option '$k'.");
+		foreach($settings AS $k => $v) {
+			throw new \Exception("Unknown setting '$k'.");
 		}
 	}
 
 	/**
 	* Parses the customizable settings from a database.
 	*/
-	public function loadFromDataInterface($defaults)
+	public function loadFromDataInterface()
 	{
-		foreach($defaults AS $name => $defaultValue)
-		{
-			$this->settings[$name] = $this->dataInterface->getSetting($name, $defaultValue);
-		}
+		$this->buyDelayMinutes = $this->dataInterface->getSetting("buyDelayMinutes", 0);
+		$this->minimumHoldMinutes = $this->dataInterface->getSetting("minimumHoldMinutes", 0); 
+		$this->prognosisWindowMinutes = $this->dataInterface->getSetting("prognosisWindowMinutes", 30); // Cannot be larger than 'mediumTermSampleCount' setting
+		$this->minimumProfitPercentage = $this->dataInterface->getSetting("minimumProfitPercentage", 0.2);
+
+		$this->shortTermSampleCount = $this->dataInterface->getSetting("shortTermSampleCount", 15);
+		$this->shortTermSaleSampleCount = $this->dataInterface->getSetting("shortTermSaleSampleCount", 15);
+		$this->mediumTermSampleCount = $this->dataInterface->getSetting("mediumTermSampleCount", 120);
+		$this->longTermSampleCount = $this->dataInterface->getSetting("longTermSampleCount", 240);
 	}
 
 	/**
@@ -106,10 +145,10 @@ class Settings
 	public function getBaseAsset() { return $this->baseAsset; }
 
 	/**
-	* Returns the base asset reservation - the bot won't do anything with this amount.
+	* Returns the base asset budget the Bot will start with. You can't change this after the bot has started trading.
 	* @return float
 	*/
-	public function getBaseAssetReservationAmount() { return $this->baseAssetReservationAmount; }
+	public function getBaseAssetInitialBudget() { return $this->baseAssetInitialBudget; }
 
 	/**
 	* Returns the counter asset - for example MOBI
@@ -133,23 +172,55 @@ class Settings
 	}
 
 	/**
-	* Returns a specific setting which has to be defined first in BotClassName::$settingDefaults
-	*/
-	public function get($name)
-	{
-		return isset($this->settings[$name]) ? $this->settings[$name] : null;
-	}
-
-	/**
 	* Stellar account secret
 	* @return String
 	*/
 	public function getAccountSecret() { return $this->accountSecret; }
 			
 	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getBuyDelayMinutes() { return $this->buyDelayMinutes; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getMinimumProfitPercentage() { return $this->minimumProfitPercentage; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getMinimumHoldMinutes() { return $this->minimumHoldMinutes; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getShortTermSampleCount() { return $this->shortTermSampleCount; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getShortTermSaleSampleCount() { return $this->shortTermSaleSampleCount; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getMediumTermSampleCount() { return $this->mediumTermSampleCount; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getLongTermSampleCount() { return $this->longTermSampleCount; }
+			
+	/**
+	* Setting, see this class variables for more information
+	*/
+	public function getPrognosisWindowMinutes() { return $this->prognosisWindowMinutes; }
+
+	/**
 	* Gets a setting from the settings array and removes it from the array afterwards
 	*/
-	private function getOptionalFromArray(Array &$settings, $name, $defaultValue = null)
+	private function getOptionalSetting(Array &$settings, $name, $defaultValue = null)
 	{
 		$value = isset($settings[$name]) ? $settings[$name] : $defaultValue;
 
@@ -161,7 +232,7 @@ class Settings
 	/**
 	* Gets a setting from the settings array and removes it from the array afterwards, will fail if the settings doesn't exist
 	*/
-	private function getFromArray(Array &$settings, $name)
+	private function getSetting(Array &$settings, $name)
 	{
 		$value = $settings[$name];
 

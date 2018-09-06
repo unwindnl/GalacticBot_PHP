@@ -3,7 +3,7 @@
 namespace GalacticBot;
 
 /*
-* A Trade is an offering on the Stellar network to trade an asset for a fixed price
+* A Trade is an offering of an asset which is fulfilled or is not fulfilled.
 */
 class Trade
 {
@@ -95,8 +95,6 @@ class Trade
 	function getCreatedAt() { return new \DateTime($this->createdAt); }
 	function getProcessedAt() { return new \DateTime($this->processedAt); }
 
-	function getFillPercentage() { return $this->fillPercentage; }
-
 	function getIsFilledCompletely()
 	{
 		return $this->state == self::STATE_FILLED;
@@ -178,14 +176,6 @@ class Trade
 
 	function updateFromAPIForBot(StellarAPI $api, Bot $bot)
 	{
-		if (!$this->offerID && $this->claimedOffers) {
-			$claimedOffers = json_decode($this->claimedOffers);
-
-			foreach($claimedOffers AS $offer)
-				if ($offer->offerID)
-					$this->offerID = $offer->offerID;
-		}
-
 		if ($this->offerID) {
 			$offerInfo = $api->getOfferInfoByID($bot, $this->offerID);
 
@@ -213,7 +203,7 @@ class Trade
 						"buyingAssetCode" => $trade->getBaseAsset()->getAssetCode(),
 					);
 				}
-			
+
 				$this->claimedOffers = json_encode($claimedOffers);
 		
 				$bot->getDataInterface()->saveTrade($this);
@@ -222,45 +212,42 @@ class Trade
 
 		if ($this->claimedOffers)
 		{
+			if ($this->type == self::TYPE_BUY)
+				$amountTotal = $this->sellAmount * 1/$this->price;
+			else
+				$amountTotal = $this->sellAmount * $this->price;
+
+			$amountTotal = (float)number_format($amountTotal, 7, '.', '');
+			$amountLeft = $amountTotal;
+
 			$claimedOffers = json_decode($this->claimedOffers);
 
 			$this->boughtAmount = 0;
 
-			if ($this->type == self::TYPE_BUY)
-				$amountWanted = (float)number_format($this->sellAmount * 1/$this->price, 7);
-			else
-				$amountWanted = (float)number_format($this->sellAmount * $this->price, 7);
-
-			$this->amountRemaining = $amountWanted;
-
 			foreach($claimedOffers AS $offer)
 			{
 				$this->boughtAmount += $offer->sellingAmount;
-				$this->amountRemaining -= $offer->sellingAmount;
+				$amountLeft -= $offer->sellingAmount;
 			}
-		
-			$this->amountRemaining = (float)number_format($this->amountRemaining, 7);
-
-			$amountFulfilled = $amountWanted - $this->amountRemaining;
-			$fillPercentage = $amountFulfilled / $amountWanted;
-
-			$this->fillPercentage = round($fillPercentage * 100 * 100) / 100;
 			
-			if ($this->fillPercentage >= 99.999)
-				$this->state = self::STATE_FILLED;
-				
-			$this->amountRemaining = number_format($this->amountRemaining, 7);
+			$amountFulfilled = $amountTotal-$amountLeft;
+
+			$fillPercentage = $amountFulfilled / $amountTotal;
+
+			$this->state = self::STATE_FILLED;
+			$this->fillPercentage = $fillPercentage * 100;
+
+			if ($this->type == self::TYPE_BUY)
+				$this->spentAmount = number_format($this->fee + ($this->boughtAmount * $this->price), 7);
+			else
+				$this->spentAmount = number_format($this->fee + $this->boughtAmount, 7);
 			
 			if ($this->type == self::TYPE_BUY)
-			{
-				$this->spentAmount = number_format($this->boughtAmount * $this->price, 7);
-				$this->paidPrice = $this->sellAmount / $this->boughtAmount;
-			}
+				$this->amountRemaining = number_format($this->sellAmount - $this->spentAmount, 7);
 			else
-			{
-				$this->spentAmount = number_format($this->boughtAmount * (1/$this->price), 7);
-				$this->paidPrice = $this->boughtAmount / $this->sellAmount;
-			}
+				$this->amountRemaining = number_format(($this->sellAmount * $this->price) - $this->spentAmount, 7);
+
+			$this->paidPrice = number_format(1 / ($amountFulfilled / $this->spentAmount), 7);
 		}
 		else
 		{
@@ -270,16 +257,10 @@ class Trade
 		$bot->getDataInterface()->saveTrade($this);
 	}
 
-	static function fromHorizonOperationAndResult(
-		\ZuluCrypto\StellarSdk\XdrModel\Operation\ManageOfferOp $operation,
-		\ZuluCrypto\StellarSdk\XdrModel\ManageOfferResult $result,
-		$transactionEnvelopeXdrString,
-		$paidFee
-	)
+	static function fromHorizonOperationAndResult(\ZuluCrypto\StellarSdk\XdrModel\Operation\ManageOfferOp $operation, \ZuluCrypto\StellarSdk\XdrModel\ManageOfferResult $result, $paidFee)
 	{
 		$o = new self();
 		$o->state = self::STATE_CREATED;
-		$o->transactionEnvelopeXdr = $transactionEnvelopeXdrString;
 		$o->ID = null;
 
 		$o->offerID = $result->getOffer() ? $result->getOffer()->getOfferId() : null;
@@ -308,18 +289,11 @@ class Trade
 
 		$o->claimedOffers = json_encode($claimedOffers);
 
+		$o->sellAmount = $operation->getAmount()->getScaledValue();
+
 		$o->priceN = $operation->getPrice()->getNumerator();
 		$o->priceD = $operation->getPrice()->getDenominator();
-
-		if ($o->type == self::TYPE_BUY)
-			$o->price = $o->priceD / $o->priceN;
-		else
-			$o->price = $o->priceN / $o->priceD;
-
-		if ($o->type == self::TYPE_BUY)
-			$o->sellAmount = $operation->getAmount()->getScaledValue();
-		else
-			$o->sellAmount = $operation->getAmount()->getScaledValue();
+		$o->price = $o->priceN / $o->priceD;
 
 		$o->fee = $paidFee;
 		
