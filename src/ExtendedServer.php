@@ -43,8 +43,11 @@ class ExtendedServer extends \ZuluCrypto\StellarSdk\Server
             throw $e;
         }
         $account = ExtendedAccount::fromHorizonResponse($response);
-        $account->setApiClient($this->getApiClient());
-        return $account;
+
+		if ($account)
+		  $account->setApiClient($this->getApiClient());
+      
+		return $account;
     }
 
 	public function getTradesForOffer($offerID, $sinceCursor = null, $limit = 200)

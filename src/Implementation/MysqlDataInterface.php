@@ -49,6 +49,11 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$this->directSet("setting_" . $name, $value);
 	}
 
+	function getBot()
+	{
+		return $this->bot;
+	}
+
 	private function excludeLastTradeFromOffers(Array $offers)
 	{
 		$lastTrade = $this->getLastTrade();
@@ -67,10 +72,13 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			$price = number_format($bid["price"], 7);
 			$amount = $bid["amount"];
 
+			/*
+			 -- lets not do this, this way we come closer to the price people want to pay or have
 			if ($price == $lastTradePrice)
 			{
 				$amount -= (float)$lastTradeAmount;
 			}
+			*/
 
 			if ($amount > 0)
 			{
@@ -103,17 +111,17 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 			$samples = new \GalacticBot\Samples(2);
 
-			if ($orderbook && isset($orderbook["bids"]))
+			if ($orderbook && isset($orderbook["asks"]))
 			{
-				$price = $this->excludeLastTradeFromOffers($orderbook["bids"]);
+				$price = $this->excludeLastTradeFromOffers($orderbook["asks"]);
 
 				if ($price !== null)
 					$samples->add($price);
 			}
 
-			if ($orderbook && isset($orderbook["asks"]))
+			if ($orderbook && isset($orderbook["bids"]))
 			{
-				$price = $this->excludeLastTradeFromOffers($orderbook["asks"]);
+				$price = $this->excludeLastTradeFromOffers($orderbook["bids"]);
 
 				if ($price !== null)
 					$samples->add($price);
@@ -266,6 +274,32 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			$trade->setData($row);
 			return $trade;
 		}
+	}
+
+	function getFirstCompletedTrade()
+	{
+		$sql = "
+			SELECT	*
+			FROM	BotTrade
+			WHERE	state = '" . \GalacticBot\Trade::STATE_FILLED . "'
+				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+			ORDER BY
+					processedAt ASC
+			LIMIT	1
+		";
+	
+		if (!$result = $this->mysqli->query($sql))
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+
+		$row = $result->fetch_assoc();
+
+		if ($row && count($row)) {
+			$trade = new \GalacticBot\Trade();
+			$trade->setData($row);
+			return $trade;
+		}
+
+		return null;
 	}
 
 	function getLastCompletedTrade()
@@ -597,7 +631,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			}
 		}
 		
-		$this->bot->getSettings()->loadFromDataInterface();
+		$this->bot->getSettings()->loadFromDataInterface($this->bot->getSettingDefaults());
 	}
 
 	function saveAndReload()
