@@ -24,16 +24,25 @@ class Time
 
 	function add($units)
 	{
+		if (!$units)
+			return;
+
 		$this->dateTime->modify("+{$units} minutes");
 	}
 
 	function subtract($units)
 	{
+		if (!$units)
+			return;
+
 		$this->dateTime->modify("-{$units} minutes");
 	}
 
 	function subtractWeeks($weeks)
 	{
+		if (!$weeks)
+			return;
+
 		$this->dateTime->modify("-{$weeks} weeks");
 	}
 
