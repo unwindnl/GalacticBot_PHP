@@ -31,6 +31,8 @@ abstract class Bot
 	*/
 	const TRADE_STATE_NONE						= "";
 
+	protected $settingDefaults = [];
+
 	protected $settings;
 	protected $data;
 
@@ -102,6 +104,11 @@ abstract class Bot
 	* @return void
 	*/
 	abstract protected function process(\GalacticBot\Time $time, $sample);
+
+	public function getSettingDefaults()
+	{
+		return $this->settingDefaults;
+	}
 
 	/**
 	* Returns last fully processed date & time.

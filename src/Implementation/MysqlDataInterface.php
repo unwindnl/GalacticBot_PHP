@@ -631,7 +631,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			}
 		}
 		
-		$this->bot->getSettings()->loadFromDataInterface();
+		$this->bot->getSettings()->loadFromDataInterface($this->bot->getSettingDefaults());
 	}
 
 	function saveAndReload()

@@ -38,15 +38,46 @@ class EMABot extends \GalacticBot\Bot
 		
 	private $shortAboveMedium = null;
 	private $shortAboveLong = null;
+
+	protected $settingDefaults = Array(
+		
+		// How long to wait before buying, after all checks for buying have passed
+		"buyDelayMinutes" => 0,
+
+		// How long to wait before cancelling a buy order which doesn't get filled
+		"buyFillWaitMinutes" => 5,
+
+		// How long to hold the counter asset at minimum before even checking if we need to sell
+		"minimumHoldMinutes" => 0,
+		
+		// How long in minutes we should try to predict the price
+		// Cannot be larger than 'mediumTermSampleCount' setting
+		"prognosisWindowMinutes" => 30,
+
+		// How much profit we want at minimum, doesn't sell if this percentage isn't met
+		"minimumProfitPercentage" => 0.2,
+
+		// How many samples are taken for the short term (buy in) EMA
+		"shortTermSampleCount" => 15,
+
+		// How many samples are taken for the short term (sale) EMA
+		"shortTermSaleSampleCount" => 15,
+
+		// How many samples are taken for the medium term EMA
+		"mediumTermSampleCount" => 120,
+
+		// How many samples are taken for the long term EMA
+		"longTermSampleCount" => 240,
+	);
 	
 	protected function initialize()
 	{
-		$this->shortTermSamples = $this->data->getS("shortTerm", $this->settings->getShortTermSampleCount());
-		$this->shortTermSaleSamples = $this->data->getS("shortTermSale", $this->settings->getShortTermSaleSampleCount());
-		$this->mediumTermSamples = $this->data->getS("mediumTerm", $this->settings->getMediumTermSampleCount());
-		$this->longTermSamples = $this->data->getS("longTerm", $this->settings->getLongTermSampleCount());
+		$this->shortTermSamples = $this->data->getS("shortTerm", $this->settings->get("shortTermSampleCount"));
+		$this->shortTermSaleSamples = $this->data->getS("shortTermSale", $this->settings->get("shortTermSaleSampleCount"));
+		$this->mediumTermSamples = $this->data->getS("mediumTerm", $this->settings->get("mediumTermSampleCount"));
+		$this->longTermSamples = $this->data->getS("longTerm", $this->settings->get("longTermSampleCount"));
 
-		$this->predictionBuffer = $this->data->getS("prediction", $this->settings->getPrognosisWindowMinutes());
+		$this->predictionBuffer = $this->data->getS("prediction", $this->settings->get("prognosisWindowMinutes"));
 
 		$this->shortAboveMedium = $this->data->get("shortAboveMedium") == 1;
 		$this->shortAboveLong = $this->data->get("shortAboveLong") == 1;
@@ -328,9 +359,9 @@ class EMABot extends \GalacticBot\Bot
 
 							$shortAboveLong = ($this->shortTermSaleValue >= $this->longTermValue);
 
-							$holdLongEnough = $lastCompletedTrade->getAgeInMinutes($time) >= $this->settings->getMinimumHoldMinutes();
+							$holdLongEnough = $lastCompletedTrade->getAgeInMinutes($time) >= $this->settings->get("minimumHoldMinutes");
 
-							$gotEnoughProfit = $currentProfitPercentage >= $this->settings->getMinimumProfitPercentage();
+							$gotEnoughProfit = $currentProfitPercentage >= $this->settings->get("minimumProfitPercentage");
 
 							if ($tradeState == self::TRADE_STATE_SELL_WAIT_POSITIVE && $shortAboveLong)
 								$tradeState = self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT;
@@ -443,7 +474,7 @@ class EMABot extends \GalacticBot\Bot
 
 	function predict(\GalacticBot\Time $time)
 	{
-		$windowSize = $this->settings->getPrognosisWindowMinutes();
+		$windowSize = $this->settings->get("prognosisWindowMinutes");
 
 		// Get the last x samples from the medium term array
 		$mediumTermSamplesArray = array_slice($this->mediumTermSamples->getArray(), -$windowSize, $windowSize);
@@ -470,7 +501,7 @@ class EMABot extends \GalacticBot\Bot
 			$this->data->setT($now, "prediction", $prediction);
 		}
 
-		$this->predictionDirection = \GalacticBot\forecast_direction($mediumTermSamplesArray, $this->predictionBuffer->getArray(), $this->settings->getPrognosisWindowMinutes() * 0.5, $this->settings->getPrognosisWindowMinutes());
+		$this->predictionDirection = \GalacticBot\forecast_direction($mediumTermSamplesArray, $this->predictionBuffer->getArray(), $this->settings->get("prognosisWindowMinutes") * 0.5, $this->settings->get("prognosisWindowMinutes"));
 	
 		$this->data->setT($time, "predictionDirection", $this->predictionDirection);
 		$this->data->setS("prediction", $this->predictionBuffer);
