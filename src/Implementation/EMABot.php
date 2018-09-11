@@ -247,7 +247,7 @@ class EMABot extends \GalacticBot\Bot
 								
 							if ($tradeState == self::TRADE_STATE_BUY_DELAY || $tradeState == self::TRADE_STATE_BUY_PENDING) {
 								if (
-									$startOfBuyDelayDate->getAgeInMinutes($time) >= $this->settings->getBuyDelayMinutes()
+									$startOfBuyDelayDate->getAgeInMinutes($time) >= $this->settings->get("buyDelayMinutes"))
 								||	$tradeState == self::TRADE_STATE_BUY_PENDING
 								) {
 									if ($this->predictionDirection >= 0) {
@@ -274,7 +274,7 @@ class EMABot extends \GalacticBot\Bot
 
 												$this->data->logVerbose("Buy order changed.");
 											}
-											else if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->getBuyFillWaitMinutes())
+											else if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
 											{
 												$this->data->logVerbose("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
 
@@ -307,7 +307,7 @@ class EMABot extends \GalacticBot\Bot
 										}
 									}
 								}
-								else if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->getBuyFillWaitMinutes())
+								else if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
 								{
 									$this->data->logVerbose("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
 
@@ -319,7 +319,7 @@ class EMABot extends \GalacticBot\Bot
 						}
 						else if ($tradeState == self::TRADE_STATE_BUY_PENDING)
 						{
-							if ($lastTrade->getAgeInMinutes($time) > $this->settings->getBuyFillWaitMinutes())
+							if ($lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
 							{
 								$this->data->logWarning("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
 
