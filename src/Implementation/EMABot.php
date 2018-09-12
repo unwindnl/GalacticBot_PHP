@@ -247,7 +247,7 @@ class EMABot extends \GalacticBot\Bot
 								
 							if ($tradeState == self::TRADE_STATE_BUY_DELAY || $tradeState == self::TRADE_STATE_BUY_PENDING) {
 								if (
-									$startOfBuyDelayDate->getAgeInMinutes($time) >= $this->settings->get("buyDelayMinutes"))
+									$startOfBuyDelayDate->getAgeInMinutes($time) >= $this->settings->get("buyDelayMinutes")
 								||	$tradeState == self::TRADE_STATE_BUY_PENDING
 								) {
 									if ($this->predictionDirection >= 0) {
