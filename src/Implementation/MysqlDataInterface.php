@@ -8,12 +8,12 @@ namespace GalacticBot\Implementation;
 class MysqlDataInterface implements \GalacticBot\DataInterface
 {
 
-	private $bot = null;
+	protected $bot = null;
 
-	private $data = [];
-	private $changedData = [];
+	protected $data = [];
+	protected $changedData = [];
 
-	private $sampleBuffers = [];
+	protected $sampleBuffers = [];
 
 	function __construct($server, $user, $password, $database) {
 		$this->mysqli = new \mysqli($server, $user, $password, $database);

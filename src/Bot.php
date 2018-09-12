@@ -24,7 +24,6 @@ abstract class Bot
 	const STATE_RUNNING							= "RUNNING";
 	const STATE_PAUSED							= "PAUSED";
 	const STATE_STOPPED							= "STOPPED";
-	const STATE_NEEDS_RESET						= "NEEDS_RESET";
 
 	/*
 	* Default trade state, you will have to define your own trade states in your bot implementation
@@ -189,7 +188,7 @@ abstract class Bot
 	{
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
 		{
-			$this->data->directSet("state", self::STATE_NEEDS_RESET);
+			$this->data->directSet("resetNeeded", 1);
 		}
 	}
 
@@ -217,9 +216,10 @@ abstract class Bot
 			case self::STATE_RUNNING:							$label = "Running"; break;
 			case self::STATE_PAUSED:							$label = "Paused"; break;
 			case self::STATE_STOPPED:							$label = "Stopped"; break;
-
-			case self::STATE_NEEDS_RESET:						$label = "Waiting for reset to complete"; break;
 		}
+
+		if ($this->data->get("resetNeeded") == 1)
+			$label = "Waiting for reset to complete";
 
 		return Array(
 			"state" => $state,
@@ -357,8 +357,10 @@ abstract class Bot
 		$state = $this->data->get("state");
 		$tradeState = $this->data->get("tradeState");
 
-		if ($state == self::STATE_NEEDS_RESET)
+		if ($this->data->get("resetNeeded") == 1)
 		{
+			$this->data->directSet("resetNeeded", 0);
+
 			$this->performFullReset();
 
 			// return and start in the next iteration
