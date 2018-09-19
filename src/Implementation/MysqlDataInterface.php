@@ -194,7 +194,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				LIMIT	1
 			";
 
-			if (!$result = $this->mysqli->query($sql))
+			if (!$result = $this->query($sql))
 			{
 				throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 			}
@@ -230,7 +230,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				AND	name NOT LIKE 'setting_%'
 		";
 		
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 		{
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
@@ -241,7 +241,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			WHERE	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
 		";
 		
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 		{
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
@@ -264,7 +264,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			LIMIT	1
 		";
 	
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 
 		$row = $result->fetch_assoc();
@@ -288,7 +288,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			LIMIT	1
 		";
 	
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 
 		$row = $result->fetch_assoc();
@@ -319,7 +319,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			LIMIT	1
 		";
 	
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 
 		$row = $result->fetch_assoc();
@@ -350,7 +350,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 					$limit
 		";
 
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 
 		while(($row = $result->fetch_assoc())) {
@@ -377,7 +377,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 					processedAt ASC
 		";
 
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 
 		while(($row = $result->fetch_assoc())) {
@@ -402,7 +402,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
 		";
 	
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 
 		$row = $result->fetch_assoc();
@@ -436,7 +436,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			WHERE	ID = " . $this->escapeSQLValue($trade->getID()) . "
 		";
 	
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 		{
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
@@ -473,7 +473,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			)
 		";
 	
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 		{
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
@@ -524,7 +524,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			)
 		";
 
-		$this->mysqli->query($sql);
+		$this->query($sql);
 	}
 
 	function getT(\GalacticBot\Time $time, $name)
@@ -538,7 +538,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				AND	date	= '" . $this->mysqli->real_escape_string($time->toString()) . "'
 		";
 	
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 		{
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
@@ -572,7 +572,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 		//echo $sql;
 
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 		{
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
@@ -611,7 +611,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				AND	date = '0000-00-00 00:00:00'
 		";
 		
-		if (!$result = $this->mysqli->query($sql))
+		if (!$result = $this->query($sql))
 		{
 			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
 		}
@@ -665,7 +665,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			";
 
 			//echo " --- updating '$k' to '$v'\n";
-			$this->mysqli->query($sql);
+			$this->query($sql);
 		}
 
 		foreach($this->sampleBuffers AS $k => $v)
@@ -691,10 +691,30 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				)
 			";
 
-			$this->mysqli->query($sql);
+			$this->query($sql);
 		}
 		
 		$this->changedData = [];
+	}
+
+	function query($sql)
+	{
+		$start = microtime(true);
+
+	//	echo $sql;
+		
+		$res = $this->mysqli->query($sql);
+
+		$stop = microtime(true);
+
+	//	$delta = $stop - $start;
+
+	//	echo " --- TIME: $delta\n";
+
+	//	if ($delta > 0.2)
+	//		exit();
+
+		return $res;
 	}
 
 	function logVerbose($what) {
