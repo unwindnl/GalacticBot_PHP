@@ -354,6 +354,9 @@ abstract class Bot
 	*/
 	public function _process(\GalacticBot\Time $time, $sample)
 	{
+	//	var_dump( "baseAsset budget = ", $this->getCurrentBaseAssetBudget() );
+	//	var_dump( "counterAsset budget = ", $this->getCurrentCounterAssetBudget() );
+	//	exit();
 		$state = $this->data->get("state");
 		$tradeState = $this->data->get("tradeState");
 
@@ -503,6 +506,11 @@ abstract class Bot
 		return $minimum;
 	}
 
+	function baseAssetIsNative()
+	{
+		return $this->getSettings()->getBaseAsset()->getAssetCode() == null;
+	}
+
 	/**
 	* Returns total amount this Bot has in the base asset.
 	*
@@ -514,13 +522,15 @@ abstract class Bot
 		{
 			$lastTrade = $this->data->getLastCompletedTrade();
 
-			if ($lastTrade && $lastTrade->getType() == Trade::TYPE_SELL)
+			$type = $this->baseAssetIsNative() ? Trade::TYPE_SELL : Trade::TYPE_BUY;
+
+			if ($lastTrade && $lastTrade->getType() == $type)
 				return $lastTrade->getBoughtAmount();
 			else if ($lastTrade)
 				return 0; // we currently have the counter asset
 
 			// Start a simulation with a fixed amount
-			return 100;
+			return $this->baseAssetIsNative() ? 100 : 0;
 		}
 
 		$balances = $this->getAccountBalances();
@@ -560,10 +570,15 @@ abstract class Bot
 		{
 			$lastTrade = $this->data->getLastCompletedTrade();
 
-			if ($lastTrade && $lastTrade->getType() == Trade::TYPE_BUY)
-				return $lastTrade->getBoughtAmount();
+			$type = $this->baseAssetIsNative() ? Trade::TYPE_BUY : Trade::TYPE_SELL;
 
-			return 0;
+			if ($lastTrade && $lastTrade->getType() == $type)
+				return $lastTrade->getBoughtAmount();
+			else if ($lastTrade)
+				return 0;
+
+			// Start a simulation with a fixed amount
+			return $this->baseAssetIsNative() ? 0 : 100;
 		}
 
 		$balances = $this->getAccountBalances();
@@ -599,21 +614,29 @@ abstract class Bot
 	*/
 	function getTotalHoldings()
 	{
-		$sum = $this->getCurrentBaseAssetBudget();
-		$counterAssetAmmount = $this->getCurrentCounterAssetBudget();
-
 		$lastTrade = $this->data->getLastCompletedTrade();
 		$previousTrade = $lastTrade && $lastTrade->getPreviousBotTradeID() ? $this->data->getTradeByID($lastTrade->getPreviousBotTradeID()) : null;
+
+		if ($this->baseAssetIsNative())
+		{
+			$sum = $this->getCurrentBaseAssetBudget();
+			$otherAssetAmmount = $this->getCurrentCounterAssetBudget();
+		}
+		else
+		{
+			$sum = $this->getCurrentCounterAssetBudget();
+			$otherAssetAmmount = $this->getCurrentBaseAssetBudget();
+		}
 
 		if ($lastTrade && $lastTrade->getType() == Trade::TYPE_BUY)
 		{
 			$price = 1/$this->data->getAssetValueForTime(Time::now());
-			$sum += $counterAssetAmmount * $price;
+			$sum += $otherAssetAmmount * $price;
 		}
 		else if ($lastTrade && $previousTrade && $previousTrade->getType() == Trade::TYPE_BUY)
 		{
 			$price = 1/$this->data->getAssetValueForTime(Time::now());
-			$sum += $counterAssetAmmount * $price;
+			$sum += $otherAssetAmmount * $price;
 		}
 
 		return $sum;
@@ -635,7 +658,9 @@ abstract class Bot
 
 		$current = $this->getTotalHoldings();
 
-		return round((($current / $start) - 1) * 10000)/100;
+		$percentage = round((($current / $start) - 1) * 10000)/100;
+
+		return $percentage;
 	}
 
 	/**
@@ -648,18 +673,29 @@ abstract class Bot
 		if (!$this->shouldTrade)
 			return null;
 
-		$budget = $this->getCurrentBaseAssetBudget(true);
+		if ($this->baseAssetIsNative())
+		{
+			$budget = $this->getCurrentBaseAssetBudget(true);
+			$fromAsset = $this->settings->getBaseAsset();
+			$toAsset = $this->settings->getCounterAsset();
+		}
+		else
+		{
+			$budget = $this->getCurrentCounterAssetBudget(true);
+			$fromAsset = $this->settings->getCounterAsset();
+			$toAsset = $this->settings->getBaseAsset();
+		}
 
 		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
 
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
 		{
 			$trade = new Trade();
-			$trade->simulate(Trade::TYPE_BUY, $this, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset());
+			$trade->simulate(Trade::TYPE_BUY, $this, $processingTime, $fromAsset, $budget, $toAsset);
 		}
 		else
 		{
-			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset(), $offerIDToUpdate, $cancelOffer);
+			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer);
 		}
 
 		if ($cancelOffer)
@@ -717,18 +753,29 @@ abstract class Bot
 		if (!$this->shouldTrade)
 			return null;
 
-		$budget = $this->getCurrentCounterAssetBudget(true);
+		if ($this->baseAssetIsNative())
+		{
+			$budget = $this->getCurrentCounterAssetBudget(true);
+			$fromAsset = $this->settings->getCounterAsset();
+			$toAsset = $this->settings->getBaseAsset();
+		}
+		else
+		{
+			$budget = $this->getCurrentBaseAssetBudget(true);
+			$fromAsset = $this->settings->getBaseAsset();
+			$toAsset = $this->settings->getCounterAsset();
+		}
 
 		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
 
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
 		{
 			$trade = new Trade();
-			$trade->simulate(Trade::TYPE_SELL, $this, $processingTime, $this->settings->getBaseAsset(), $budget, $this->settings->getCounterAsset());
+			$trade->simulate(Trade::TYPE_SELL, $this, $processingTime, $fromAsset, $budget, $toAsset);
 		}
 		else
 		{
-			$trade = $this->settings->getAPI()->manageOffer($this, false, $processingTime, $this->settings->getCounterAsset(), $budget, $this->settings->getBaseAsset(), $offerIDToUpdate, $cancelOffer);
+			$trade = $this->settings->getAPI()->manageOffer($this, false, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer);
 		}
 
 		if ($cancelOffer)
