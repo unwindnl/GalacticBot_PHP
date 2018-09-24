@@ -136,7 +136,12 @@ class StellarAPI {
 	{
 		global $_BASETIMEZONE;
 	
+		$sellingAmount = 1;
+
 		$price = $bot->getDataInterface()->getAssetValueForTime($time);
+
+		if (!$bot->baseAssetIsNative())
+			$price = 1/$price;
 
 		$buyingAmount = $price * $sellingAmount;
 
