@@ -86,6 +86,8 @@ class EMABot extends \GalacticBot\Bot
 	public function getTradeStateLabel($forState) {
 		$counter = $this->settings->getCounterAsset()->getAssetCode();
 
+		$label = null;
+
 		switch($forState)
 		{
 			case self::TRADE_STATE_BUFFERING:					$label = "Waiting for enough data"; break;
@@ -104,7 +106,7 @@ class EMABot extends \GalacticBot\Bot
 			case self::TRADE_STATE_DIP_WAIT:					$label = "Waiting for short to fall below long"; break;
 		}
 
-		return null;
+		return $label;
 	}
 
 	protected function process(\GalacticBot\Time $time, $sample)

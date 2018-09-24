@@ -47,6 +47,8 @@ class CrashGuardBot extends \GalacticBot\Bot
 	public function getTradeStateLabel($forState) {
 		$counter = $this->settings->getCounterAsset()->getAssetCode();
 
+		$label = null;
+
 		switch($forState)
 		{
 			case self::TRADE_STATE_BUFFERING:					$label = "Waiting for enough data"; break;
@@ -62,7 +64,7 @@ class CrashGuardBot extends \GalacticBot\Bot
 			case self::TRADE_STATE_WAIT_FOR_RISE_HOLD:			$label = "Waiting for rise to hold long enough"; break;
 		}
 
-		return null;
+		return $label;
 	}
 
 	protected function process(\GalacticBot\Time $time, $sample)
@@ -218,6 +220,8 @@ class CrashGuardBot extends \GalacticBot\Bot
 			}
 		}
 
+		$this->data->set("state", $state);
+		$this->data->set("tradeState", $tradeState);
 		$this->data->set("differencePercentage", $differencePercentage);
 		
 		$this->data->set("outOfDipDate", $this->outOfDipDate ? $this->outOfDipDate->toString() : null);
