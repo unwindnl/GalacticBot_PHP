@@ -177,7 +177,7 @@ class EMABot extends \GalacticBot\Bot
 		{
 			$this->data->logWarning("No sample data received, not processing this timeframe.");
 			$this->data->save();
-			exit();
+			//exit();
 		}
 		else
 		{
@@ -460,10 +460,6 @@ class EMABot extends \GalacticBot\Bot
 					break;
 			}
 		}
-
-		$this->data->setT($time, "baseAssetAmount", $this->getCurrentBaseAssetBudget());
-		$this->data->setT($time, "counterAssetAmount", $this->getCurrentCounterAssetBudget());
-		$this->data->setT($time, "totalHoldings", $this->getTotalHoldings());
 
 		$this->data->set("state", $state);
 		$this->data->set("tradeState", $tradeState);

@@ -218,12 +218,6 @@ class CrashGuardBot extends \GalacticBot\Bot
 			}
 		}
 
-		$this->data->setT($time, "baseAssetAmount", $this->getCurrentBaseAssetBudget());
-		$this->data->setT($time, "counterAssetAmount", $this->getCurrentCounterAssetBudget());
-		$this->data->setT($time, "totalHoldings", $this->getTotalHoldings());
-
-		$this->data->set("state", $state);
-		$this->data->set("tradeState", $tradeState);
 		$this->data->set("differencePercentage", $differencePercentage);
 		
 		$this->data->set("outOfDipDate", $this->outOfDipDate ? $this->outOfDipDate->toString() : null);

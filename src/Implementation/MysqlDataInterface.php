@@ -174,7 +174,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				$lastDate = $date;
 			}
 		}
-
+	
 		$price = $this->getT($time, "value");
 
 		if (!$price) {

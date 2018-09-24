@@ -397,6 +397,13 @@ abstract class Bot
 		$this->lastProcessingTime = new Time($time);
 		$this->data->set("lastProcessingTime", $this->lastProcessingTime->toString());
 
+		$this->data->setT($time, "baseAssetAmount", $this->getCurrentBaseAssetBudget());
+		$this->data->setT($time, "counterAssetAmount", $this->getCurrentCounterAssetBudget());
+		$this->data->setT($time, "totalHoldings", $this->getTotalHoldings());
+		$this->data->setT($time, "profitPercentage", $this->getProfitPercentage());
+
+		$this->data->set("tradeStateDescription", $this->getTradeStateLabel($this->data->get("tradeState")));
+
 		$this->data->save();
 			
 		return true;
