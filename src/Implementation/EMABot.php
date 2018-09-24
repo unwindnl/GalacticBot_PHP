@@ -104,7 +104,7 @@ class EMABot extends \GalacticBot\Bot
 			case self::TRADE_STATE_DIP_WAIT:					$label = "Waiting for short to fall below long"; break;
 		}
 
-		return $label;
+		return null;
 	}
 
 	protected function process(\GalacticBot\Time $time, $sample)

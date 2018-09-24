@@ -62,7 +62,7 @@ class CrashGuardBot extends \GalacticBot\Bot
 			case self::TRADE_STATE_WAIT_FOR_RISE_HOLD:			$label = "Waiting for rise to hold long enough"; break;
 		}
 
-		return $label;
+		return null;
 	}
 
 	protected function process(\GalacticBot\Time $time, $sample)

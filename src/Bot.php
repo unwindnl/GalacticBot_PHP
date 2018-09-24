@@ -531,7 +531,10 @@ abstract class Bot
 					$this->settings->getBaseAsset()->getAssetCode() == $assetCode
 				)
 				{
-					return $balance->getBalance() - $this->getMinimumXLMRequirement() - $this->settings->getBaseAssetReservationAmount();
+					if (!$assetCode)
+						return $balance->getBalance() - $this->getMinimumXLMRequirement() - $this->settings->getBaseAssetReservationAmount();
+					else
+						return $balance->getBalance() - $this->settings->getBaseAssetReservationAmount();
 				}
 			}
 		}
@@ -571,7 +574,10 @@ abstract class Bot
 					$this->settings->getCounterAsset()->getAssetCode() == $assetCode
 				)
 				{
-					return $balance->getBalance();
+					if (!$assetCode)
+						return $balance->getBalance() - $this->getMinimumXLMRequirement();
+					else
+						return $balance->getBalance();
 				}
 			}
 		}
@@ -743,6 +749,28 @@ abstract class Bot
 		$this->data->addTrade($trade);
 
 		return $trade;
+	}
+
+}
+
+
+class Profiler
+{
+
+	static $times = [];
+
+	static function start($name)
+	{
+		self::$times[$name] = microtime(true);
+	}
+
+	static function stop($name)
+	{
+		 $delta = microtime(true) - self::$times[$name];
+
+		 $delta = number_format($delta, 8);
+
+		 echo " -- Time $name = $delta\n";
 	}
 
 }

@@ -214,7 +214,9 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			}
 		}
 
-		return $price ? (float)number_format($price, 7, '.', '') : null;
+		$price = $price ? (float)number_format($price, 7, '.', '') : null;
+
+		return $price;
 	}
 	
 	function clearAllExceptSampleDataAndSettings()
@@ -699,13 +701,13 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 	function query($sql)
 	{
-		$start = microtime(true);
+	//	$start = microtime(true);
 
 	//	echo $sql;
 		
 		$res = $this->mysqli->query($sql);
 
-		$stop = microtime(true);
+	//	$stop = microtime(true);
 
 	//	$delta = $stop - $start;
 
