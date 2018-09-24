@@ -47,6 +47,9 @@ class CrashGuardBot extends \GalacticBot\Bot
 	public function getTradeStateLabel($forState) {
 		$counter = $this->settings->getCounterAsset()->getAssetCode();
 
+		if (!$this->data->get("lastProcessingTime"))
+			return null;
+
 		$label = null;
 
 		switch($forState)

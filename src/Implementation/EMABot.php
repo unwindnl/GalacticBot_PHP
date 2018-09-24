@@ -88,6 +88,9 @@ class EMABot extends \GalacticBot\Bot
 
 		$label = null;
 
+		if (!$this->data->get("lastProcessingTime"))
+			return null;
+
 		switch($forState)
 		{
 			case self::TRADE_STATE_BUFFERING:					$label = "Waiting for enough data"; break;
