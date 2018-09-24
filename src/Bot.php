@@ -501,7 +501,7 @@ abstract class Bot
 	*
 	* @return float
 	*/
-	function getCurrentBaseAssetBudget()
+	function getCurrentBaseAssetBudget($subtractMinimumXLMReserve = false)
 	{
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
 		{
@@ -531,7 +531,7 @@ abstract class Bot
 					$this->settings->getBaseAsset()->getAssetCode() == $assetCode
 				)
 				{
-					if (!$assetCode)
+					if (!$assetCode && $subtractMinimumXLMReserve)
 						return $balance->getBalance() - $this->getMinimumXLMRequirement() - $this->settings->getBaseAssetReservationAmount();
 					else
 						return $balance->getBalance() - $this->settings->getBaseAssetReservationAmount();
@@ -547,7 +547,7 @@ abstract class Bot
 	*
 	* @return float
 	*/
-	function getCurrentCounterAssetBudget()
+	function getCurrentCounterAssetBudget($subtractMinimumXLMReserve = false)
 	{
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
 		{
@@ -574,7 +574,7 @@ abstract class Bot
 					$this->settings->getCounterAsset()->getAssetCode() == $assetCode
 				)
 				{
-					if (!$assetCode)
+					if (!$assetCode && $subtractMinimumXLMReserve)
 						return $balance->getBalance() - $this->getMinimumXLMRequirement();
 					else
 						return $balance->getBalance();
@@ -641,7 +641,7 @@ abstract class Bot
 		if (!$this->shouldTrade)
 			return null;
 
-		$budget = $this->getCurrentBaseAssetBudget();
+		$budget = $this->getCurrentBaseAssetBudget(true);
 
 		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
 
@@ -710,7 +710,7 @@ abstract class Bot
 		if (!$this->shouldTrade)
 			return null;
 
-		$budget = $this->getCurrentCounterAssetBudget();
+		$budget = $this->getCurrentCounterAssetBudget(true);
 
 		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
 
