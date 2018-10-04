@@ -630,12 +630,20 @@ abstract class Bot
 
 		if ($lastTrade && $lastTrade->getType() == Trade::TYPE_BUY)
 		{
-			$price = 1/$this->data->getAssetValueForTime(Time::now());
+			$price = $this->data->getAssetValueForTime(Time::now());
+
+			if ($price)
+				$price = 1/$price;
+
 			$sum += $otherAssetAmmount * $price;
 		}
 		else if ($lastTrade && $previousTrade && $previousTrade->getType() == Trade::TYPE_BUY)
 		{
-			$price = 1/$this->data->getAssetValueForTime(Time::now());
+			$price = $this->data->getAssetValueForTime(Time::now());
+			
+			if ($price)
+				$price = 1/$price;
+
 			$sum += $otherAssetAmmount * $price;
 		}
 
