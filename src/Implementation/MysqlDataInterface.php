@@ -134,6 +134,15 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 				return $price;
 			}
+			else
+			{
+				$price = $this->getLatestT($time, "value");
+				
+				if ($price)
+					$this->setT($time, "value", $price);
+
+				return $price;
+			}
 
 			return null;
 		}
@@ -538,6 +547,33 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 					botID	= '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
 				AND	name	= '" . $this->mysqli->real_escape_string($name) . "'
 				AND	date	= '" . $this->mysqli->real_escape_string($time->toString()) . "'
+		";
+	
+		if (!$result = $this->query($sql))
+		{
+			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+		}
+
+		$row = $result->fetch_assoc();
+
+		if ($row && count($row))
+			return $row["value"];
+
+		return null;
+	}
+
+	function getLatestT(\GalacticBot\Time $time, $name)
+	{
+		$sql = "
+			SELECT	value
+			FROM	BotData
+			WHERE
+					botID	= '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+				AND	name	= '" . $this->mysqli->real_escape_string($name) . "'
+				AND	date	<= '" . $this->mysqli->real_escape_string($time->toString()) . "'
+			ORDER BY
+					date DESC
+			LIMIT	1
 		";
 	
 		if (!$result = $this->query($sql))

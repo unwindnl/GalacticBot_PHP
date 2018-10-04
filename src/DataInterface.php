@@ -74,6 +74,12 @@ interface DataInterface
 	function getT(Time $time, $name);
 
 	/*
+	* Gets the latest value for a variable, before a specific time
+	* @return string or null
+	*/
+	function getLatestT(\GalacticBot\Time $time, $name);
+
+	/*
 	* Sets a value for a variable on a specific time
 	* @return void
 	*/
