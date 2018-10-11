@@ -38,6 +38,9 @@ class Settings
 	// All defined settings for a bot, based on the BotClass::$settingDefaults array
 	private $settings = [];
 
+	// Cache Stellar account keypair
+	private $stellarAccountKeypair = null;
+
 	/**
 	* Parses the Bot settings
 	*
@@ -144,8 +147,23 @@ class Settings
 	* Stellar account secret
 	* @return String
 	*/
-	public function getAccountSecret() { return $this->accountSecret; }
-			
+	public function getAccountKeypair()
+	{
+		if (!$this->stellarAccountKeypair)
+			$this->stellarAccountKeypair = \ZuluCrypto\StellarSdk\Keypair::newFromSeed($this->accountSecret);
+
+		return $this->stellarAccountKeypair;
+	}
+
+	/**
+	* Stellar account public key
+	* @return String
+	*/
+	public function getAccountPublicKey()
+	{
+		return $this->getAccountKeypair()->getPublicKey();
+	}
+				
 	/**
 	* Gets a setting from the settings array and removes it from the array afterwards
 	*/

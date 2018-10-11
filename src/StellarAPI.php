@@ -49,9 +49,7 @@ class StellarAPI {
 		$server = $this->isTestNet ? \ZuluCrypto\StellarSdk\Server::testNet() : \ZuluCrypto\StellarSdk\Server::publicNet();
 		$server = new ExtendedServer($server, $this->isTestNet);
 
-		$keypair = \ZuluCrypto\StellarSdk\Keypair::newFromSeed($bot->getSettings()->getAccountSecret());
-	
-		$result = $server->getExtendedAccount($keypair->getPublicKey());
+		$result = $server->getExtendedAccount($bot->getSettings()->getAccountPublicKey());
 
 		return $result;
 	}
@@ -72,8 +70,6 @@ class StellarAPI {
 		$server = $this->isTestNet ? \ZuluCrypto\StellarSdk\Server::testNet() : \ZuluCrypto\StellarSdk\Server::publicNet();
 		$server = new ExtendedServer($server, $this->isTestNet);
 
-		$keypair = \ZuluCrypto\StellarSdk\Keypair::newFromSeed($bot->getSettings()->getAccountSecret());
-	
 		$result = $server->getOrderBook($sellingAsset, $buyingAsset, $limit);
 
 		return $result;
@@ -86,11 +82,9 @@ class StellarAPI {
 		$server = $this->isTestNet ? \ZuluCrypto\StellarSdk\Server::testNet() : \ZuluCrypto\StellarSdk\Server::publicNet();
 		$server = new ExtendedServer($server, $this->isTestNet);
 
-		$keypair = \ZuluCrypto\StellarSdk\Keypair::newFromSeed($bot->getSettings()->getAccountSecret());
-	
 		$trades = $server->getTradesForOffer($offerID);
 
-		$account = $server->getExtendedAccount($keypair->getPublicKey());
+		$account = $server->getExtendedAccount($bot->getSettings()->getAccountPublicKey());
 
 		$openOffer = null;
 		$offers = $account->getOffers();
@@ -151,8 +145,6 @@ class StellarAPI {
 		$server = $this->isTestNet ? \ZuluCrypto\StellarSdk\Server::testNet() : \ZuluCrypto\StellarSdk\Server::publicNet();
 		$server = new ExtendedServer($server, $this->isTestNet);
 
-		$keypair = \ZuluCrypto\StellarSdk\Keypair::newFromSeed($bot->getSettings()->getAccountSecret());
-
 		if ($isBuyOffer)
 			$price = $this->float2rat($buyingAmount / $sellingAmount);
 		else
@@ -160,7 +152,7 @@ class StellarAPI {
 
 		$price = new \ZuluCrypto\StellarSdk\XdrModel\Price($price[0], $price[1]);
 
-		$transactionBuilder = $server->buildTransaction($keypair);
+		$transactionBuilder = $server->buildTransaction($bot->getSettings()->getAccountKeypair());
 
 		$operation = new \ZuluCrypto\StellarSdk\XdrModel\Operation\ManageOfferOp(
 			$sellingAsset,
@@ -174,11 +166,11 @@ class StellarAPI {
 
 		try
 		{
-			$transactionEnvelope = $transactionBuilder->sign($keypair);
+			$transactionEnvelope = $transactionBuilder->sign($bot->getSettings()->getAccountKeypair());
 		
 			$transactionEnvelopeXdrString = base64_encode($transactionEnvelope->toXdr());
 
-			$response = $transactionBuilder->submit($keypair);
+			$response = $transactionBuilder->submit($bot->getSettings()->getAccountKeypair());
 
 			$result = $response->getResult();
 
@@ -219,8 +211,6 @@ class StellarAPI {
 		$server = $this->isTestNet ? \ZuluCrypto\StellarSdk\Server::testNet() : \ZuluCrypto\StellarSdk\Server::publicNet();
 		$server = new ExtendedServer($server, $this->isTestNet);
 
-		$keypair = \ZuluCrypto\StellarSdk\Keypair::newFromSeed($bot->getSettings()->getAccountSecret());
-	
 		return $server->getTradeAggregations($baseAsset, $counterAsset, $start->getTimestamp() * 1000, $end->getTimestamp() * 1000, $interval, $limit, "asc");
 	}
 

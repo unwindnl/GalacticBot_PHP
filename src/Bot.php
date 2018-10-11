@@ -328,10 +328,14 @@ abstract class Bot
 			$hasRun = $this->_process($this->currentTime, $sample);
 
 			if ($this->currentTime->isNow() || $this->getShouldNotProcess()) {
+				// Sleep for 1 second
 				sleep(1);
 
 				$ticks += 1;
 			} else {
+				// Sleep for 0.01 seconds
+				usleep(1000000 * 0.01);
+
 				$this->currentTime->add(1);
 
 				$ticks += 0.5;
