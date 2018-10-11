@@ -330,14 +330,14 @@ abstract class Bot
 			if ($this->currentTime->isNow() || $this->getShouldNotProcess()) {
 				sleep(1);
 
-				$ticks += 1/3;
+				$ticks += 1;
 			} else {
 				$this->currentTime->add(1);
 
-				$ticks += 1/100;
+				$ticks += 0.5;
 			}
 
-			if ($ticks >= 1)
+			if ($ticks >= 30)
 			{
 				// This will first save our changes and then load any changed settings or state
 				$this->data->saveAndReload();
@@ -372,7 +372,7 @@ abstract class Bot
 
 		if ($this->getShouldNotProcess())
 		{
-			$this->data->logVerbose("Stopped or not running, doing nothing.");
+			//$this->data->logVerbose("Stopped or not running, doing nothing.");
 			// Do nothing
 			return false;
 		}
@@ -407,8 +407,9 @@ abstract class Bot
 
 		$this->data->set("tradeStateDescription", $this->getTradeStateLabel($this->data->get("tradeState")));
 
-		$this->data->save();
-			
+		// save, excluding the samples buffers (we don't want to save them every run when simulating)
+		$this->data->save(false);
+
 		return true;
 	}
 

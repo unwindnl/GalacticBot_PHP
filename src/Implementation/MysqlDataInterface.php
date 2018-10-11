@@ -679,7 +679,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$this->loadForBot($this->bot, true);
 	}
 
-	function save()
+	function save($includingBuffers = true)
 	{
 		foreach($this->changedData AS $k => $v)
 		{
@@ -705,34 +705,37 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			//echo " --- updating '$k' to '$v'\n";
 			$this->query($sql);
 		}
-
-		foreach($this->sampleBuffers AS $k => $v)
-		{
-			$jv = (object)[];
-			$jv->maxLength = $v->getMaxLength();
-			$jv->samples = $v->getArray();
-
-			$sql = "
-				REPLACE INTO BotData
-				(
-					botID,
-					name,
-					date,
-					value
-				)
-				VALUES
-				(
-					'" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "',
-					'SB_" . $this->mysqli->real_escape_string($k) . "',
-					'0000-00-00 00:00:00',
-					'" . $this->mysqli->real_escape_string(json_encode($jv)) . "'
-				)
-			";
-
-			$this->query($sql);
-		}
 		
 		$this->changedData = [];
+
+		if ($includingBuffers)
+		{
+			foreach($this->sampleBuffers AS $k => $v)
+			{
+				$jv = (object)[];
+				$jv->maxLength = $v->getMaxLength();
+				$jv->samples = $v->getArray();
+
+				$sql = "
+					REPLACE INTO BotData
+					(
+						botID,
+						name,
+						date,
+						value
+					)
+					VALUES
+					(
+						'" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "',
+						'SB_" . $this->mysqli->real_escape_string($k) . "',
+						'0000-00-00 00:00:00',
+						'" . $this->mysqli->real_escape_string(json_encode($jv)) . "'
+					)
+				";
+
+				$this->query($sql);
+			}
+		}
 	}
 
 	function query($sql)

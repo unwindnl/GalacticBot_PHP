@@ -23,7 +23,7 @@ interface DataInterface
 	/*
 	* Save all (changed) data
 	*/
-	function save();
+	function save($includingBuffers = true);
 
 	/*
 	* Get the price for an asset at any givven time
