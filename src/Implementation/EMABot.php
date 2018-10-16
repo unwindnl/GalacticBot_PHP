@@ -503,6 +503,8 @@ class EMABot extends \GalacticBot\Bot
 		}
 
 		$this->predictionDirection = \GalacticBot\forecast_direction($mediumTermSamplesArray, $this->predictionBuffer->getArray(), $this->settings->get("prognosisWindowMinutes") * 0.5, $this->settings->get("prognosisWindowMinutes"));
+
+		$this->predictionDirection *= -1;
 	
 		$this->data->setT($time, "predictionDirection", $this->predictionDirection);
 		$this->data->setS("prediction", $this->predictionBuffer);
