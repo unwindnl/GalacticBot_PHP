@@ -129,8 +129,6 @@ class StellarAPI {
 	function manageOffer(Bot $bot, $isBuyOffer, Time $time, \ZuluCrypto\StellarSdk\XdrModel\Asset $sellingAsset, $sellingAmount, \ZuluCrypto\StellarSdk\XdrModel\Asset $buyingAsset, $offerIDToUpdate = null, $cancelOffer = false)
 	{
 		global $_BASETIMEZONE;
-	
-		$sellingAmount = 1;
 
 		$price = $bot->getDataInterface()->getAssetValueForTime($time);
 
