@@ -55,19 +55,19 @@ class EMABot extends \GalacticBot\Bot
 		"prognosisWindowMinutes" => 30,
 
 		// How much profit we want at minimum, doesn't sell if this percentage isn't met
-		"minimumProfitPercentage" => 0.2,
+		"minimumProfitPercentage" => 0.15,
 
 		// How many samples are taken for the short term (buy in) EMA
 		"shortTermSampleCount" => 15,
 
 		// How many samples are taken for the short term (sale) EMA
-		"shortTermSaleSampleCount" => 15,
+		"shortTermSaleSampleCount" => 10,
 
 		// How many samples are taken for the medium term EMA
-		"mediumTermSampleCount" => 120,
+		"mediumTermSampleCount" => 100,
 
 		// How many samples are taken for the long term EMA
-		"longTermSampleCount" => 240,
+		"longTermSampleCount" => 220,
 	);
 	
 	protected function initialize()
