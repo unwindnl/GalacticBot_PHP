@@ -22,20 +22,18 @@ class Time
 		$this->dateTime->setTime($this->dateTime->format("H"), $this->dateTime->format("i"), 0);
 	}
 
-	function add($units)
-	{
-		if (!$units)
+	function add($count, $units = "minutes") {
+		if (!$count)
 			return;
 
-		$this->dateTime->modify("+{$units} minutes");
+		$this->dateTime->modify("+{$count} {$units}");
 	}
 
-	function subtract($units)
-	{
-		if (!$units)
+	function subtract($count, $units = "minutes") {
+		if (!$count)
 			return;
 
-		$this->dateTime->modify("-{$units} minutes");
+		$this->dateTime->modify("-{$count} {$units}");
 	}
 
 	function subtractWeeks($weeks)
