@@ -667,8 +667,7 @@ abstract class Bot
 		if ($firstTrade)
 			$start = $this->data->getT(Time::fromDateTime($firstTrade->getProcessedAt()), "amount");
 
-		if (!$start)
-			$start = $firstTrade ? $firstTrade->getSellAmount() : 0;
+		$start = $firstTrade ? $firstTrade->getSellAmount() : 0;
 
 		if (!$start)
 			return 0;
