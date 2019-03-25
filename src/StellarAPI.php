@@ -176,13 +176,32 @@ class StellarAPI {
 			if ($cancelOffer)
 				return true;
 
-			return Trade::fromHorizonOperationAndResult($operation, $result->getOperationResults()[0], $transactionEnvelopeXdrString, $result->getFeeCharged()->getScaledValue());
+			if (
+				$response
+			&&	$response->getField("extras")
+			&&	isset($response->getField("extras")["result_codes"])
+			&&	isset($response->getField("extras")["result_codes"]["operations"])
+			&&	isset($response->getField("extras")["result_codes"]["operations"][0])) {
+				$bot->data->logVerbose("Manage offer operation result code = " . $response->getField("extras")["result_codes"]["operations"][0]);
+			}
+
+			//var_dump("result = ", $result);
+			//var_dump("response = ", $response);
+
+			// Todo: make sure there is a trustline, otherwise you'll get: op_buy_no_trust
+			//var_dump($response, $response->getField("extras")["result_codes"]["operations"][0], $result);exit();
+
+			if (!$result) {
+				$bot->data->logError("Manage offer operation failed, response = " . json_encode($response));
+				return false;
+			}
+			
+			return Trade::fromHorizonOperationAndResultForBot($operation, $result->getOperationResults()[0], $transactionEnvelopeXdrString, $result->getFeeCharged()->getScaledValue(), $bot);
 		}
 		catch(\ZuluCrypto\StellarSdk\Horizon\Exception\PostTransactionException $exception)
 		{
-			// TODO: Catch all errors from https://www.stellar.org/developers/guides/concepts/list-of-operations.html
-			var_dump("Exception = ", $exception->getResult());
-			exit();
+			$bot->data->logError("Exception while calling 'manageOffer': " . $exception->getResult());
+			return false;
 		}
 
 		return false;
