@@ -702,7 +702,7 @@ abstract class Bot
 	*
 	* @return Trade or null
 	*/
-	function buy(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false)
+	function buy(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false, $price = null)
 	{
 		if (!$this->shouldTrade)
 			return null;
@@ -729,13 +729,16 @@ abstract class Bot
 		}
 		else
 		{
-			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer);
+			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer, $price);
 		}
 
 		if ($cancelOffer)
 		{
 			return $trade;
 		}
+
+		if (!$trade)
+			return false;
 
 		if ($updateExistingTrade)
 		{
@@ -782,7 +785,7 @@ abstract class Bot
 	*
 	* @return Trade or null
 	*/
-	function sell(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false)
+	function sell(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false, $price = null)
 	{
 		if (!$this->shouldTrade)
 			return null;
@@ -809,13 +812,16 @@ abstract class Bot
 		}
 		else
 		{
-			$trade = $this->settings->getAPI()->manageOffer($this, false, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer);
+			$trade = $this->settings->getAPI()->manageOffer($this, false, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer, $price);
 		}
 
 		if ($cancelOffer)
 		{
 			return $trade;
 		}
+
+		if (!$trade)
+			return false;
 
 		if ($updateExistingTrade)
 		{
