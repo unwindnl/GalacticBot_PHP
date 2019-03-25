@@ -176,10 +176,31 @@ class Trade
 		}
 	}
 
+	function getTradeInfo($trade) {
+		return (object)Array(
+			"offerID" => $this->offerID,
+
+			"sellingAssetType" => $trade->getCounterAsset()->getType(),
+			"sellingAssetCode" => $trade->getCounterAsset()->getAssetCode(),
+
+			"sellingAmount" => $this->type == self::TYPE_BUY ? $trade->getCounterAmount() : $trade->getBaseAmount(),
+
+			"buyingAssetType" => $trade->getBaseAsset()->getType(),
+			"buyingAssetCode" => $trade->getBaseAsset()->getAssetCode(),
+
+			"price" => $trade->getPrice()
+		);
+	}
+
 	function updateFromAPIForBot(StellarAPI $api, Bot $bot)
 	{
-		if (!$this->offerID && $this->claimedOffers) {
-			$claimedOffers = json_decode($this->claimedOffers);
+		$isOpen = true;
+
+		$claimedOffers = $this->claimedOffers ? json_decode($this->claimedOffers) : [];
+
+		$claimedOffers = (Array)$claimedOffers;
+
+		if (!$this->offerID && $claimedOffers) {
 
 			foreach($claimedOffers AS $offer)
 				if ($offer->offerID)
@@ -189,29 +210,17 @@ class Trade
 		if ($this->offerID) {
 			$offerInfo = $api->getOfferInfoByID($bot, $this->offerID);
 
-			if ($offerInfo["isOpen"])
-			{
-				$bot->getDataInterface()->logVerbose("Trade #{$this->ID} (offerID: #{$this->offerID}) is not fulfilled yet.");
+			if (!$offerInfo["isOpen"])
+				$isOpen = false;
 
-				return;
-			}
-			else
-			{
-				$claimedOffers = [];
-
-				foreach($offerInfo["trades"] AS $trade)
-				{
-					$claimedOffers[] = Array(
-						"offerID" => $this->offerID,
-
-						"sellingAssetType" => $trade->getCounterAsset()->getType(),
-						"sellingAssetCode" => $trade->getCounterAsset()->getAssetCode(),
-
-						"sellingAmount" => $this->type == self::TYPE_BUY ? $trade->getCounterAmount() : $trade->getBaseAmount(),
-
-						"buyingAssetType" => $trade->getBaseAsset()->getType(),
-						"buyingAssetCode" => $trade->getBaseAsset()->getAssetCode(),
-					);
+			if ($offerInfo["trades"]) {
+				foreach($offerInfo["trades"] AS $trade) {
+					if (
+						$bot->getSettings()->getAccountPublicKey() == $trade->getBaseAccount()
+					||	$bot->getSettings()->getAccountPublicKey() == $trade->getCounterAccount()
+					) {
+						$claimedOffers[$trade->getID()] = $this->getTradeInfo($trade);
+					}
 				}
 			
 				$this->claimedOffers = json_encode($claimedOffers);
@@ -220,10 +229,11 @@ class Trade
 			}
 		}
 
-		if ($this->claimedOffers)
+	//	var_dump("claimedOffers = ", $claimedOffers);
+//		exit();
+		
+		if ($claimedOffers)
 		{
-			$claimedOffers = json_decode($this->claimedOffers);
-
 			$this->boughtAmount = 0;
 
 			if ($this->type == self::TYPE_BUY)
@@ -233,10 +243,16 @@ class Trade
 
 			$this->amountRemaining = $amountWanted;
 
+			$paidPrice = [];
+
 			foreach($claimedOffers AS $offer)
 			{
+				if (is_array($offer))
+					$offer = (object)$offer;
+
 				$this->boughtAmount += $offer->sellingAmount;
 				$this->amountRemaining -= $offer->sellingAmount;
+				$paidPrice[] = 1 / $offer->price;
 			}
 		
 			$this->amountRemaining = (float)number_format($this->amountRemaining, 7);
@@ -250,31 +266,37 @@ class Trade
 				$this->state = self::STATE_FILLED;
 				
 			$this->amountRemaining = number_format($this->amountRemaining, 7);
+			$this->paidPrice = array_average($paidPrice);
 			
 			if ($this->type == self::TYPE_BUY)
 			{
 				$this->spentAmount = number_format($this->boughtAmount * $this->price, 7);
-				$this->paidPrice = $this->sellAmount / $this->boughtAmount;
 			}
 			else
 			{
 				$this->spentAmount = number_format($this->boughtAmount * (1/$this->price), 7);
-				$this->paidPrice = $this->boughtAmount / $this->sellAmount;
 			}
 		}
-		else
-		{
-			exit("invalid trade");
+
+	/*
+		// Closed / cancelled
+		if (!$isOpen && $this->state == self::STATE_CREATED) {
+			$this->state = self::STATE_CANCELLED;
 		}
+	*/
+		
+		if ($this->state == self::STATE_CREATED)
+			$bot->getDataInterface()->logVerbose("Trade #{$this->ID} (offerID: #{$this->offerID}) is not fulfilled yet (fill: {$this->fillPercentage}%).");
 
 		$bot->getDataInterface()->saveTrade($this);
 	}
 
-	static function fromHorizonOperationAndResult(
+	static function fromHorizonOperationAndResultForBot(
 		\ZuluCrypto\StellarSdk\XdrModel\Operation\ManageOfferOp $operation,
 		\ZuluCrypto\StellarSdk\XdrModel\ManageOfferResult $result,
 		$transactionEnvelopeXdrString,
-		$paidFee
+		$paidFee,
+		\GalacticBot\Bot $bot
 	)
 	{
 		$o = new self();
@@ -287,26 +309,13 @@ class Trade
 		$claimedOfferList = $result->getClaimedOffers();
 		$claimedOffers = [];
 
-		if ($claimedOfferList)
-		{
-			foreach($claimedOfferList AS $offer)
-			{
-				$claimedOffers[] = Array(
-					"offerID" => $offer->getOfferId(),
+		foreach($claimedOfferList AS $trade)
+			if (!$o->offerID)
+				$o->offerID = $trade->getOfferId();
 
-					"sellingAssetType" => $offer->getAssetSold()->getType(),
-					"sellingAssetCode" => $offer->getAssetSold()->getAssetCode(),
-					"sellingAmount" => $offer->getAmountSold()->getScaledValue(),
-
-					"buyingAssetType" => $offer->getAssetBought()->getType(),
-					"buyingAssetCode" => $offer->getAssetBought()->getAssetCode(),
-				);
-			}
-		}
+		$o->claimedOffers = json_encode(Array());
 
 		$o->type = $operation->getSellingAsset()->getType() == \ZuluCrypto\StellarSdk\XdrModel\Asset::TYPE_NATIVE ? self::TYPE_BUY : self::TYPE_SELL;
-
-		$o->claimedOffers = json_encode($claimedOffers);
 
 		$o->priceN = $operation->getPrice()->getNumerator();
 		$o->priceD = $operation->getPrice()->getDenominator();
