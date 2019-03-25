@@ -16,10 +16,10 @@ class Time
 			$this->dateTime = clone $other->dateTime;
 	}
 
-	function setDate(\DateTime $dateTime)
+	function setDate(\DateTime $dateTime, $includeSeconds = false)
 	{
 		$this->dateTime = clone $dateTime;
-		$this->dateTime->setTime($this->dateTime->format("H"), $this->dateTime->format("i"), 0);
+		$this->dateTime->setTime($this->dateTime->format("H"), $this->dateTime->format("i"), $includeSeconds ? $this->dateTime->format("s") : 0);
 	}
 
 	function add($count, $units = "minutes") {
@@ -78,16 +78,16 @@ class Time
 		return $this->dateTime;
 	}
 
-	function getAgeInMinutes(Time $now = null)
-	{
+	function getAgeInMinutes(Time $now = null) {
+		return $this->getAgeInSeconds($now) / 60;
+	}
+
+	function getAgeInSeconds(Time $now = null) {
 		if (!$now)
 			$now = self::now();
 
-		$seconds = $now->dateTime->format("U") - $this->dateTime->format("U");
-
-		return $seconds / 60;
+		return (float)$now->dateTime->format("U") - (float)$this->dateTime->format("U");
 	}
-
 	static function fromString($string)
 	{
 		$o = new self();
@@ -102,10 +102,10 @@ class Time
 		return $o;
 	}
 
-	static function now()
+	static function now($includeSeconds = false)
 	{
 		$o = new self();
-		$o->setDate(new \DateTime(null, new \DateTimeZone("UTC")));
+		$o->setDate(new \DateTime(null, new \DateTimeZone("UTC")), $includeSeconds);
 		return $o;
 	}
 
