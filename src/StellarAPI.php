@@ -126,11 +126,12 @@ class StellarAPI {
 	/**
 	 * Performs the Horizon API 'manageOffer' call (creates, updates or deletes an offer).
 	 */
-	function manageOffer(Bot $bot, $isBuyOffer, Time $time, \ZuluCrypto\StellarSdk\XdrModel\Asset $sellingAsset, $sellingAmount, \ZuluCrypto\StellarSdk\XdrModel\Asset $buyingAsset, $offerIDToUpdate = null, $cancelOffer = false)
+	function manageOffer(Bot $bot, $isBuyOffer, Time $time, \ZuluCrypto\StellarSdk\XdrModel\Asset $sellingAsset, $sellingAmount, \ZuluCrypto\StellarSdk\XdrModel\Asset $buyingAsset, $offerIDToUpdate = null, $cancelOffer = false, $price = null)
 	{
 		global $_BASETIMEZONE;
 
-		$price = $bot->getDataInterface()->getAssetValueForTime($time);
+		if ($price === null)
+			$price = $bot->getDataInterface()->getAssetValueForTime($time);
 
 		if (!$bot->baseAssetIsNative())
 			$price = 1/$price;
