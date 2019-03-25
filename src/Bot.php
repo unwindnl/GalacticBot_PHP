@@ -361,6 +361,24 @@ abstract class Bot
 	//	var_dump( "baseAsset budget = ", $this->getCurrentBaseAssetBudget() );
 	//	var_dump( "counterAsset budget = ", $this->getCurrentCounterAssetBudget() );
 	//	exit();
+		
+		$lastTrade = $this->data->getLastTrade();
+
+		// Update the last trade
+		if ($lastTrade && !$lastTrade->getIsFilledCompletely()) {
+			$lastTradeUpdateTime = $this->data->get("lastTradeUpdateTime");
+			$lastTradeUpdateTime = $lastTradeUpdateTime ? \GalacticBot\Time::fromString($lastTradeUpdateTime) : null;
+
+			$now = \GalacticBot\Time::now(true);
+
+			if (!$lastTradeUpdateTime || $lastTradeUpdateTime->getAgeInSeconds($now) >= 15) {
+				$this->data->set("lastTradeUpdateTime", $now->toString());
+				
+				$this->data->logVerbose("Updating last unfinished trade.");
+				$lastTrade->updateFromAPIForBot($this->settings->getAPI(), $this);
+			}
+		}
+
 		$state = $this->data->get("state");
 		$tradeState = $this->data->get("tradeState");
 
