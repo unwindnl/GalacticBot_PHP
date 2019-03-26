@@ -104,8 +104,8 @@ class ExtendedAccount extends \ZuluCrypto\StellarSdk\Model\Account
 
 		$object->minimumRequirement = $minimumRequirement *= 0.5;
 
-		// Add one stroop for the transaction fee
-		$object->minimumRequirement += 0.0000001;
+		// Add one stroop for the transaction fee times a hundred so we can submit enough transactions
+		$object->minimumRequirement += 0.0000001 * 100;
 
         return $object;
     }
