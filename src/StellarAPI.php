@@ -182,7 +182,7 @@ class StellarAPI {
 			&&	isset($response->getField("extras")["result_codes"])
 			&&	isset($response->getField("extras")["result_codes"]["operations"])
 			&&	isset($response->getField("extras")["result_codes"]["operations"][0])) {
-				$bot->data->logVerbose("Manage offer operation result code = " . $response->getField("extras")["result_codes"]["operations"][0]);
+				$bot->getDataInterface()->logVerbose("Manage offer operation result code = " . $response->getField("extras")["result_codes"]["operations"][0]);
 			}
 
 			//var_dump("result = ", $result);
@@ -192,7 +192,11 @@ class StellarAPI {
 			//var_dump($response, $response->getField("extras")["result_codes"]["operations"][0], $result);exit();
 
 			if (!$result) {
-				$bot->data->logError("Manage offer operation failed, response = " . json_encode($response));
+				if (is_object($response))
+					$bot->getDataInterface()->logError("Manage offer operation failed, response = " . serialize($response));
+				else
+					$bot->getDataInterface()->logError("Manage offer operation failed, response = " . $response);
+
 				return false;
 			}
 			
