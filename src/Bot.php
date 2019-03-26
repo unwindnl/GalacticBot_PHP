@@ -146,7 +146,8 @@ abstract class Bot
 	*/
 	public function start()
 	{
-		$this->data->directSet("state", self::STATE_RUNNING);
+		// reset first, will start automaticly after a full reset
+		$this->data->directSet("resetNeeded", 1);
 	}
 
 	/**
@@ -281,18 +282,33 @@ abstract class Bot
 	*/
 	private function performFullReset()
 	{
-		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
-		{
-			$this->getDataInterface()->clearAllExceptSampleDataAndSettings();
+		$this->getDataInterface()->clearAllExceptSampleDataAndSettings();
 		
-			$aWeekAgo = Time::now();
-			$aWeekAgo->subtractWeeks(1);
+		// Go back to the last date with buffered samples until x days back
+		$lastBufferDate = Time::now();
+		$days = 0;
+		$value = null;
+		
+		if ($this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
+			$maxDaysBack = 1;
+		else
+			$maxDaysBack = 7;
 
-			$this->lastProcessingTime = new Time($aWeekAgo);
-			$this->data->set("lastProcessingTime", $aWeekAgo->toString());
+		do {
+			$days++;
+			$lastBufferDate->subtract(1, "day");
 
-			$this->currentTime = new Time($aWeekAgo);
+			$value = $this->getDataInterface()->getAssetValueForTime($lastBufferDate);
+		} while ($value !== null && $days < $maxDaysBack); 
+
+		if ($value === null) {
+			$lastBufferDate = Date::now();
 		}
+
+		$this->lastProcessingTime = new Time($lastBufferDate);
+		$this->data->set("lastProcessingTime", $lastBufferDate->toString());
+
+		$this->currentTime = new Time($lastBufferDate);
 
 		$this->data->set("state", self::STATE_RUNNING);
 		$this->data->save();
@@ -405,11 +421,18 @@ abstract class Bot
 		if ($state == self::STATE_PAUSED)
 			$this->shouldTrade = false;
 
+
 		if (!$time->isAfter($this->lastProcessingTime)) {
 			return false;
 		}
 
 		$this->data->logVerbose("Processing timeframe (" . $time->toString() . ")");
+
+		// Do not trade based up off old data
+		if (!$time->isNow()) {
+			$this->data->logVerbose("Trading is disabled, processing old data.");
+			$this->shouldTrade = false;
+		}
 
 		$lastTrade = $this->data->getLastTrade();
 
@@ -729,6 +752,9 @@ abstract class Bot
 		}
 		else
 		{
+			// make sure to get the latest account info (and thus sequence number)
+			$this->getAccountInfo();
+
 			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer, $price);
 		}
 
@@ -812,6 +838,9 @@ abstract class Bot
 		}
 		else
 		{
+			// make sure to get the latest account info (and thus sequence number)
+			$this->getAccountInfo();
+
 			$trade = $this->settings->getAPI()->manageOffer($this, false, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer, $price);
 		}
 
