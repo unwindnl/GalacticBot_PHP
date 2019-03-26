@@ -307,6 +307,7 @@ abstract class Bot
 
 		$this->lastProcessingTime = new Time($lastBufferDate);
 		$this->data->set("lastProcessingTime", $lastBufferDate->toString());
+		$this->data->set("firstProcessingTime", null);
 
 		$this->currentTime = new Time($lastBufferDate);
 
@@ -441,10 +442,13 @@ abstract class Bot
 			$lastTrade->updateFromAPIForBot($this->settings->getAPI(), $this);
 
 		$this->process($time, $sample);
-		
+	
 		$this->lastProcessingTime = new Time($time);
 		$this->data->set("lastProcessingTime", $this->lastProcessingTime->toString());
-
+	
+		if (!$this->data->get("firstProcessingTime"))
+			$this->data->set("firstProcessingTime", $this->lastProcessingTime->toString());
+	
 		$this->data->setT($time, "baseAssetAmount", $this->getCurrentBaseAssetBudget());
 		$this->data->setT($time, "counterAssetAmount", $this->getCurrentCounterAssetBudget());
 		$this->data->setT($time, "totalHoldings", $this->getTotalHoldings());
