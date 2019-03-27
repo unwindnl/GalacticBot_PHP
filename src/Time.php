@@ -88,6 +88,48 @@ class Time
 
 		return (float)$now->dateTime->format("U") - (float)$this->dateTime->format("U");
 	}
+
+	static function getDurationDescription(Time $from, Time $to) {
+	//	var_dump("from = ", $from->toString());
+	//	var_dump("to = ", $to->toString());
+
+		$minutes = $from->getAgeInMinutes($to);
+		$hours = floor($minutes / (60));
+		$minutes -= $hours * 60;
+		$days = floor($hours / 24);
+		$hours -= $days * 24;
+
+		if ($days > 0 && $days <= 1) {
+			if ($days == 1)
+				$days = "1 day";
+			else
+				$days = $days . " days";
+
+			if ($hours == 1)
+				return $days . " and 1 hour";
+			else
+				return $days . " and {$hours} hours";
+		} else if ($hours <= 24) {
+			if ($hours == 1)
+				$hours = "1 hour";
+			else
+				$hours = $hours . " hours";
+
+			if ($minutes == 1)
+				return $hours . " and 1 minute";
+			else
+				return $hours . " and {$minutes} minutes";
+		} else if ($minutes == 0)
+			return null;
+		else if ($minutes == 1)
+			return "1 minute";
+		else if ($minutes <= 59)
+			return $minutes . " minutes";
+		else 
+
+		return $days == 1 ? "1 day" : $days . " days";
+	}
+	
 	static function fromString($string)
 	{
 		$o = new self();
