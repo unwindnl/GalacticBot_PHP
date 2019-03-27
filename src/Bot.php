@@ -284,6 +284,8 @@ abstract class Bot
 	{
 		$this->getDataInterface()->clearAllExceptSampleDataAndSettings();
 		
+		$this->data->logVerbose("Performing full reset.");
+
 		// Go back to the last date with buffered samples until x days back
 		$lastBufferDate = Time::now();
 		$days = 0;
@@ -313,6 +315,8 @@ abstract class Bot
 
 		$this->data->set("state", self::STATE_RUNNING);
 		$this->data->save();
+		
+		$this->data->directSet("state", self::STATE_RUNNING);
 	}
 
 	/**
@@ -358,7 +362,7 @@ abstract class Bot
 				$ticks += 0.5;
 			}
 
-			if ($ticks >= 30)
+			if ($ticks >= 15)
 			{
 				// This will first save our changes and then load any changed settings or state
 				$this->data->saveAndReload();
