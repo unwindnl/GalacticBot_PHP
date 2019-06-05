@@ -109,7 +109,7 @@ class Time
 				return $days . " and 1 hour";
 			else
 				return $days . " and {$hours} hours";
-		} else if ($hours <= 24) {
+		} else if ($hours > 0 && $hours <= 24) {
 			if ($hours == 1)
 				$hours = "1 hour";
 			else
