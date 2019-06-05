@@ -2,6 +2,8 @@
 
 namespace GalacticBot;
 
+include_once "GalacticHorizon/lib.php";
+
 /*
 * Abstract bot class.
 *
@@ -304,19 +306,107 @@ abstract class Bot
 		} while ($value !== null && $days < $maxDaysBack); 
 
 		if ($value === null) {
-			$lastBufferDate = Date::now();
+			$lastBufferDate = Time::now();
 		}
 
 		$this->lastProcessingTime = new Time($lastBufferDate);
 		$this->data->set("lastProcessingTime", $lastBufferDate->toString());
 		$this->data->set("firstProcessingTime", null);
+		$this->data->directSet("firstProcessingTime", null);
 
 		$this->currentTime = new Time($lastBufferDate);
 
 		$this->data->set("state", self::STATE_RUNNING);
+		$this->data->set("tradeState", "");
 		$this->data->save();
 		
 		$this->data->directSet("state", self::STATE_RUNNING);
+		$this->data->directSet("tradeState", "");
+
+		$this->onFullReset();
+		
+		$this->data->save();
+	}
+
+	protected function onFullReset() {}
+
+	public function preLaunch() {
+		date_default_timezone_set("UTC");
+
+		$timezone = date_default_timezone_get();
+
+		if ($timezone != "UTC")
+			exit("Cannot set timezone to UTC");
+	
+		if ($this->settings->getIsOnTestNet())
+			\GalacticHorizon\Client::createTestNetClient();
+		else
+			\GalacticHorizon\Client::createPublicClient();
+	}
+
+	public function stream() {
+		$this->preLaunch();
+
+		$account = \GalacticHorizon\Account::createFromPublicKey($this->getSettings()->getAccountPublicKey());
+			
+		if ($account->fetch()) {
+			$cursor = $this->data->get("last-trades-update-cursor", "now");
+		
+			$bot = $this;
+			
+			$account->getTradesStreaming(
+				$cursor,
+				function($ID, $trade) use ($bot) {
+					$this->data->set("last-trades-update-cursor", $ID);
+					$this->data->save();
+
+					$lastTrade = $this->data->getLastTrade();
+
+					if ($lastTrade) {
+						$lastTradeDate = clone $lastTrade->getCreatedAt();
+						$lastTradeDate->modify("-1 minute");
+
+						if ($trade->getLedgerCloseTime() >= $lastTradeDate) {
+							$isBuy = $lastTrade->getType() == \GalacticBot\Trade::TYPE_BUY;
+							$isSell = !$isBuy;
+
+							$lastTradeBuyingAssetCode = $isBuy ? $this->settings->getCounterAsset()->getCode() : $this->settings->getBaseAsset()->getCode();
+
+							if ($trade->getBaseIsSeller())
+							{
+								if ($trade->getBaseAccount() == $this->getSettings()->getAccountPublicKey())
+								{
+									$buyingAssetCode = $trade->getCounterAsset()->getCode();
+									$buyingAssetType = $trade->getCounterAsset()->getType();
+								}
+								else
+								{
+									$buyingAssetCode = $trade->getBaseAsset()->getCode();
+									$buyingAssetType = $trade->getBaseAsset()->getType();
+								}
+							}
+							else
+							{
+								if ($trade->getBaseAccount() == $this->getSettings()->getAccountPublicKey())
+								{
+									$buyingAssetCode = $trade->getBaseAsset()->getCode();
+									$buyingAssetType = $trade->getBaseAsset()->getType();
+								}
+								else
+								{
+									$buyingAssetCode = $trade->getCounterAsset()->getCode();
+									$buyingAssetType = $trade->getCounterAsset()->getType();
+								}
+							}
+
+							if ($buyingAssetCode == $lastTradeBuyingAssetCode) {
+								$lastTrade->addCompletedHorizonTradeForBot($trade, $bot);
+							}
+						}
+					}
+				}
+			);
+		}
 	}
 
 	/**
@@ -326,14 +416,8 @@ abstract class Bot
 	*
 	* @return void
 	*/
-	public function work()
-	{
-		date_default_timezone_set("UTC");
-
-		$timezone = date_default_timezone_get();
-
-		if ($timezone != "UTC")
-			exit("Cannot set timezone to UTC");
+	public function work() {
+		$this->preLaunch();
 
 		$this->currentTime = new Time($this->lastProcessingTime);
 
@@ -379,24 +463,38 @@ abstract class Bot
 	*/
 	public function _process(\GalacticBot\Time $time, $sample)
 	{
-	//	var_dump( "baseAsset budget = ", $this->getCurrentBaseAssetBudget() );
-	//	var_dump( "counterAsset budget = ", $this->getCurrentCounterAssetBudget() );
-	//	exit();
-		
 		$lastTrade = $this->data->getLastTrade();
 
 		// Update the last trade
 		if ($lastTrade && !$lastTrade->getIsFilledCompletely()) {
 			$lastTradeUpdateTime = $this->data->get("lastTradeUpdateTime");
-			$lastTradeUpdateTime = $lastTradeUpdateTime ? \GalacticBot\Time::fromString($lastTradeUpdateTime) : null;
-
+			$lastTradeUpdateID = $this->data->get("lastTradeUpdateID");
+			
 			$now = \GalacticBot\Time::now(true);
 
-			if (!$lastTradeUpdateTime || $lastTradeUpdateTime->getAgeInSeconds($now) >= 15) {
+			if ($lastTradeUpdateID != $lastTrade->getID()) {
 				$this->data->set("lastTradeUpdateTime", $now->toString());
+				$this->data->set("lastTradeUpdateID", $lastTrade->getID());
+			} else {
+				$lastTradeUpdateTime = $lastTradeUpdateTime ? \GalacticBot\Time::fromString($lastTradeUpdateTime) : null;
+
+				if ($lastTradeUpdateTime->getAgeInSeconds($now) >= 60*2) {
+					$this->data->set("lastTradeUpdateTime", $now->toString());
 				
-				$this->data->logVerbose("Updating last unfinished trade.");
-				$lastTrade->updateFromAPIForBot($this->settings->getAPI(), $this);
+					$this->getDataInterface()->logVerbose("We've got a trade open for a long time, making sure it isn't cancelled by checking open trades for this bot's account.");
+
+					$account = \GalacticHorizon\Account::createFromPublicKey($this->getSettings()->getAccountPublicKey());
+						
+					if ($account->fetch()) {
+						$offers = $account->getOffers("");
+
+						if (count($offers) == 0) {
+							$this->getDataInterface()->logVerbose("There aren't any open trades, marking our open trade as cancelled.");
+		
+							$this->cancel($time, $lastTrade);
+						}
+					}
+				}
 			}
 		}
 
@@ -432,6 +530,9 @@ abstract class Bot
 		}
 
 		$this->data->logVerbose("Processing timeframe (" . $time->toString() . ")");
+		
+		if ($lastTrade && !$lastTrade->getIsFilledCompletely())
+			$this->getDataInterface()->logVerbose("Trade #" . $lastTrade->getID() . " is not fulfilled yet (fill: " . $lastTrade->getFillPercentage() . "%).");
 
 		// Do not trade based up off old data
 		if (!$time->isNow()) {
@@ -441,17 +542,13 @@ abstract class Bot
 
 		$lastTrade = $this->data->getLastTrade();
 
-		// Update the last trade
-		if ($lastTrade && !$lastTrade->getIsFilledCompletely())
-			$lastTrade->updateFromAPIForBot($this->settings->getAPI(), $this);
-
 		$this->process($time, $sample);
 	
 		$this->lastProcessingTime = new Time($time);
 		$this->data->set("lastProcessingTime", $this->lastProcessingTime->toString());
 	
 		if (!$this->data->get("firstProcessingTime"))
-			$this->data->set("firstProcessingTime", $this->lastProcessingTime->toString());
+			$this->data->set("firstProcessingTime", (Time::now())->toString());
 	
 		$this->data->setT($time, "baseAssetAmount", $this->getCurrentBaseAssetBudget());
 		$this->data->setT($time, "counterAssetAmount", $this->getCurrentCounterAssetBudget());
@@ -471,35 +568,41 @@ abstract class Bot
 	*
 	* @return float
 	*/
-	function getAccountBalances()
-	{
+	function getAccountBalances() {
 		$balances = $this->data->get("acountInfoBalances_Data");
 		$date = $this->data->get("acountInfoBalances_Date");
 
-		if ($balances && $date)
-		{
+		if ($balances && $date) {
 			$date = Time::fromString($date);
 
-			if ($date->isNow())
-			{
-				return unserialize($balances);
+			if ($date->isNow()) {
+				return json_decode($balances);
 			}
 		}
 
 		$date = Time::now();
 		$account = $this->getAccountInfo();
 		$balances = [];
+		$balancesArray = [];
 		
-		if ($account)
-		{
+		if ($account) {
 			$balances = $account->getBalances();
+
+			foreach($balances AS $balance) {
+				$balancesArray[] = (object)Array(
+					"balanceInStroops" => $balance->getBalance()->toString(),
+					"assetCode" => $balance->getAsset()->getCode(),
+					"assetIssuer" => !$balance->getAsset()->isNative() ? $balance->getAsset()->getIssuer()->getPublicKey() : null,
+					"assetIsNative" => $balance->getAsset()->isNative() ? true : false
+				);
+			}
 		}
 
-		$this->data->set("acountInfoBalances_Data", serialize($balances));
+		$this->data->set("acountInfoBalances_Data", json_encode($balancesArray));
 		$this->data->set("acountInfoBalances_Date", $date->toString());
 		$this->data->save();
 
-		return $balances;
+		return $balancesArray;
 	}
 
 	/**
@@ -507,23 +610,16 @@ abstract class Bot
 	*
 	* @return float
 	*/
-	function getAccountInfo()
-	{
-		if (!$this->accountInfo || !$this->lastAccountInfoUpdate->isNow())
-		{
-			$info = $this->settings->getAPI()->getAccount($this);
-
-			if ($info)
-			{
-				$this->accountInfo = $info;
+	function getAccountInfo() {
+		if (!$this->accountInfo || !$this->lastAccountInfoUpdate->isNow()) {
+			$account = \GalacticHorizon\Account::createFromPublicKey($this->getSettings()->getAccountPublicKey());
+			
+			if ($account->fetch()) {
+				$this->accountInfo = $account;
 				$this->lastAccountInfoUpdate = Time::now();
-			}
-			else if (!$this->accountInfo)
-			{
+			} else if (!$this->accountInfo) {
 				$this->data->logError("Cannot load account info from the Stellar network.");
-			}
-			else
-			{
+			} else {
 				$this->data->logWarning("Cannot load account info from the Stellar network. Using previously loaded data for now.");
 			}
 		}
@@ -548,10 +644,11 @@ abstract class Bot
 		$account = $this->getAccountInfo();
 		$minimum = null;
 		
-		if ($account)
-		{
-			$minimum = $account->getMinimumRequirement();
+		if ($account) {
+			$minimum = $account->getMinimumBalance();
 		}
+
+		$minimum += 0.5; // For one outstanding offer
 
 		$this->data->set("acountInfoMinimum_Value", $minimum);
 		$this->data->set("acountInfoMinimum_Date", $date->toString());
@@ -562,7 +659,7 @@ abstract class Bot
 
 	function baseAssetIsNative()
 	{
-		return $this->getSettings()->getBaseAsset()->getAssetCode() == null;
+		return $this->getSettings()->getBaseAsset()->getCode() == null;
 	}
 
 	/**
@@ -589,23 +686,28 @@ abstract class Bot
 
 		$balances = $this->getAccountBalances();
 
-		if ($balances)
-		{
-			foreach($balances as $balance)
-			{
-				$assetCode = $balance->getAssetCode();
+		if ($balances) {
+			$botBaseAssetCode = $this->settings->getBaseAsset()->getCode();
+			$botBaseAssetIssuer = $this->settings->getBaseAsset()->getIssuer() ? $this->settings->getBaseAsset()->getIssuer()->getAccountIdString() : null;
 
-				if ($assetCode == "XLM")
+			foreach($balances AS $balance) {
+				if ($balance->assetIsNative) {
 					$assetCode = null;
-
+					$assetIssuer = null;
+				} else {
+					$assetCode = $balance->assetCode;
+					$assetIssuer = $balance->assetIssuer;
+				}
+			
 				if (
-					$this->settings->getBaseAsset()->getAssetCode() == $assetCode
+					$botBaseAssetCode == $assetCode
+				&&	$botBaseAssetIssuer == $assetIssuer
 				)
 				{
 					if (!$assetCode && $subtractMinimumXLMReserve)
-						return $balance->getBalance() - $this->getMinimumXLMRequirement() - $this->settings->getBaseAssetReservationAmount();
+						return self::stroopsToInt($balance->balanceInStroops) - $this->getMinimumXLMRequirement() - $this->settings->getBaseAssetReservationAmount();
 					else
-						return $balance->getBalance() - $this->settings->getBaseAssetReservationAmount();
+						return self::stroopsToInt($balance->balanceInStroops) - $this->settings->getBaseAssetReservationAmount();
 				}
 			}
 		}
@@ -613,13 +715,22 @@ abstract class Bot
 		return null;
 	}
 
+	// TODO: Temporary, should work with BigInteger's or Amount objects only!
+	static function stroopsToInt($stroopsString) {
+		if (!$stroopsString)
+			return 0;
+
+		$amount = \GalacticHorizon\Amount::createFromString($stroopsString);
+
+		return $amount->toFloat();
+	}
+
 	/**
 	* Returns total amount this Bot has in the counter asset.
 	*
 	* @return float
 	*/
-	function getCurrentCounterAssetBudget($subtractMinimumXLMReserve = false)
-	{
+	function getCurrentCounterAssetBudget($subtractMinimumXLMReserve = false) {
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
 		{
 			$lastTrade = $this->data->getLastCompletedTrade();
@@ -637,23 +748,18 @@ abstract class Bot
 
 		$balances = $this->getAccountBalances();
 
-		if ($balances)
-		{
-			foreach($balances as $balance)
-			{
-				$assetCode = $balance->getAssetCode();
+		if ($balances) {
+			foreach($balances as $balance) {
+				$assetCode = $balance->assetCode;
 
-				if ($assetCode == "XLM")
+				if ($balance->assetIsNative)
 					$assetCode = null;
 
-				if (
-					$this->settings->getCounterAsset()->getAssetCode() == $assetCode
-				)
-				{
+				if ($this->settings->getCounterAsset()->getCode() == $assetCode) {
 					if (!$assetCode && $subtractMinimumXLMReserve)
-						return $balance->getBalance() - $this->getMinimumXLMRequirement();
+						return self::stroopsToInt($balance->balanceInStroops) - $this->getMinimumXLMRequirement();
 					else
-						return $balance->getBalance();
+						return self::stroopsToInt($balance->balanceInStroops);
 				}
 			}
 		}
@@ -735,22 +841,16 @@ abstract class Bot
 	*/
 	function buy(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false, $price = null)
 	{
-		if (!$this->shouldTrade)
+		if (!$this->shouldTrade && !$cancelOffer) // But allow to cancel an order
 			return null;
 
-		if ($this->baseAssetIsNative())
-		{
-			$budget = $this->getCurrentBaseAssetBudget(true);
-			$fromAsset = $this->settings->getBaseAsset();
-			$toAsset = $this->settings->getCounterAsset();
-		}
-		else
-		{
-			$budget = $this->getCurrentCounterAssetBudget(true);
-			$fromAsset = $this->settings->getCounterAsset();
-			$toAsset = $this->settings->getBaseAsset();
-		}
+		if ($cancelOffer)
+			$price = $updateExistingTrade->getPrice();
 
+		$budget = $this->getCurrentBaseAssetBudget(true);
+		$fromAsset = $this->settings->getBaseAsset();
+		$toAsset = $this->settings->getCounterAsset();
+		
 		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
 
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
@@ -763,7 +863,7 @@ abstract class Bot
 			// make sure to get the latest account info (and thus sequence number)
 			$this->getAccountInfo();
 
-			$trade = $this->settings->getAPI()->manageOffer($this, true, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer, $price);
+			$trade = $this->manageOffer(true, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer, $price);
 		}
 
 		if ($cancelOffer)
@@ -800,7 +900,7 @@ abstract class Bot
 	*
 	* @return void
 	*/
-	function cancel(Time $processingTime, Trade $trade)
+	function cancel(Time $processingTime, Trade $trade, $newState = Trade::STATE_CANCELLED)
 	{
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
 		{
@@ -809,8 +909,11 @@ abstract class Bot
 			else
 				$this->buy($processingTime, $trade, true);
 		}
+		
+		if ($newState === null)
+			return;
 
-		$trade->setState(Trade::STATE_CANCELLED);
+		$trade->setState($newState);
 		$this->data->saveTrade($trade);
 	}
 
@@ -821,22 +924,16 @@ abstract class Bot
 	*/
 	function sell(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false, $price = null)
 	{
-		if (!$this->shouldTrade)
+		if (!$this->shouldTrade && !$cancelOffer) // But allow to cancel an order
 			return null;
 
-		if ($this->baseAssetIsNative())
-		{
-			$budget = $this->getCurrentCounterAssetBudget(true);
-			$fromAsset = $this->settings->getCounterAsset();
-			$toAsset = $this->settings->getBaseAsset();
-		}
-		else
-		{
-			$budget = $this->getCurrentBaseAssetBudget(true);
-			$fromAsset = $this->settings->getBaseAsset();
-			$toAsset = $this->settings->getCounterAsset();
-		}
+		if ($cancelOffer)
+			$price = $updateExistingTrade->getPrice();
 
+		$budget = $this->getCurrentCounterAssetBudget(true);
+		$fromAsset = $this->settings->getCounterAsset();
+		$toAsset = $this->settings->getBaseAsset();
+		
 		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
 
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
@@ -849,7 +946,7 @@ abstract class Bot
 			// make sure to get the latest account info (and thus sequence number)
 			$this->getAccountInfo();
 
-			$trade = $this->settings->getAPI()->manageOffer($this, false, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer, $price);
+			$trade = $this->manageOffer(false, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer, $price);
 		}
 
 		if ($cancelOffer)
@@ -880,6 +977,99 @@ abstract class Bot
 		$this->data->addTrade($trade);
 
 		return $trade;
+	}
+
+	private function manageOffer($isBuyOffer, Time $time, \GalacticHorizon\Asset $sellingAsset, $sellingAmount, \GalacticHorizon\Asset $buyingAsset, $offerIDToUpdate = null, $cancelOffer = false, $price = null)
+	{
+		global $_BASETIMEZONE;
+		
+		// reset last trade update time
+		$now = \GalacticBot\Time::now();
+		$this->data->set("lastTradeUpdateTime", $now->toString());
+		$this->data->set("lastTradeUpdateID", null);
+		
+		$this->data->logVerbose("Manage offer called; isBuyOffer = " . ($isBuyOffer ? "true" : "false") . ", sellingAsset = " . $sellingAsset . ", sellingAmount = " . $sellingAmount . ", buyingAsset = " . $buyingAsset . ", offerIDToUpdate = " . $offerIDToUpdate . ", cancelOffer = " . ($cancelOffer ? "true" : "false") . ", price = " . ($price === null ? "null" : $price));
+	
+		if ($price === null) {
+			$this->data->logVerbose("Manage offer called with zero price. Fetching the current price by ourselfs.");
+			$price = $this->getDataInterface()->getAssetValueForTime($time);
+		}
+
+		if (!$this->baseAssetIsNative())
+			$price = 1/$price;
+
+		if ((float)$price <= 0) {
+			$this->data->logError("Manage offer failed, price is (still) zero.");
+			return false;
+		}
+
+		if ((float)$sellingAmount <= 0) {
+			$this->data->logError("Manage offer failed, selling amount is zero.");
+			return false;
+		}
+
+		$buyingAmount = $price * $sellingAmount;
+
+		$buyingAmount = (float)number_format($buyingAmount, 7, '.', '');
+		$sellingAmount = (float)number_format($sellingAmount, 7, '.', '');
+
+		if ($isBuyOffer)
+			$price = \GalacticHorizon\Price::createFromFloat($buyingAmount / $sellingAmount);
+		else
+			$price = \GalacticHorizon\Price::createFromFloat($sellingAmount / $buyingAmount);
+
+		$buyingAmount = \GalacticHorizon\Amount::createFromFloat($buyingAmount);
+		$sellingAmount = \GalacticHorizon\Amount::createFromFloat($sellingAmount);
+
+		$manageOffer = new \GalacticHorizon\ManageOfferOperation();
+		$manageOffer->setSellingAsset($sellingAsset);
+		$manageOffer->setBuyingAsset($buyingAsset);
+		$manageOffer->setAmount($cancelOffer ? \GalacticHorizon\Amount::createFromFloat(0) : $sellingAmount);
+		$manageOffer->setPrice($price);
+		$manageOffer->setOfferID($offerIDToUpdate ? $offerIDToUpdate : null);
+
+		try {
+			$transaction = new \GalacticHorizon\Transaction($this->settings->getAccountKeypair());
+			$transaction->addOperation($manageOffer);
+			$transaction->sign([$this->settings->getAccountKeypair()]);
+			
+			$buffer = new \GalacticHorizon\XDRBuffer();
+			$transaction->toXDRBuffer($buffer);
+
+			$automaticlyFixTrustLineWithAmount = \GalacticHorizon\Amount::createFromFloat(200);
+
+			$transactionResult = $transaction->submit($automaticlyFixTrustLineWithAmount);
+
+			if ($transactionResult->getErrorCode() == \GalacticHorizon\TransactionResult::TX_SUCCESS) {
+				// Return when an offer is cancelled
+				if ($cancelOffer)
+					return true;
+
+				$trade = Trade::fromGalacticHorizonOperationResponseAndResultForBot(
+					$manageOffer,
+					$transactionResult,
+					$transactionResult->getResult(0),
+					$buffer->toBase64String(),
+					$transactionResult->getFeeCharged()->toString(),
+					$this
+				);
+
+				return $trade;
+			} else {
+				$this->getDataInterface()->logError("Manage offer operation failed, error code = " . $transactionResult->getErrorCode());
+
+				if ($transactionResult->getResultCount() > 0) {
+					$this->getDataInterface()->logError("Manage offer result, error code = " . $transactionResult->getResult(0)->getErrorCode());
+				}
+
+				$this->getDataInterface()->logError("Transaction envelope = " . $buffer->toBase64String());
+			}
+		} catch (\GalacticHorizon\Exception $e) {
+			$this->getDataInterface()->logError("Manage offer operation failed, exception = " . (string)$e);
+			$this->getDataInterface()->logError("Response = " . $e->getHttpResponseBody());
+		}
+
+		return false;
 	}
 
 }

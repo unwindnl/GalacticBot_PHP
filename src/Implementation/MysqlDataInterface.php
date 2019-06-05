@@ -2,6 +2,8 @@
 
 namespace GalacticBot\Implementation;
 
+use GalacticHorizon\Client;
+
 /*
 * Demo MySQL data interface implemention with some form of caching. This should and could be further optimized.
 */
@@ -69,8 +71,8 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		
 		foreach($offers AS $bid)
 		{
-			$price = number_format($bid["price"], 7);
-			$amount = $bid["amount"];
+			$price = number_format($bid->price, 7);
+			$amount = $bid->amount;
 
 			/*
 			 -- lets not do this, this way we come closer to the price people want to pay or have
@@ -84,7 +86,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			{
 				// Still have left when our offer is excluded
 				// We can assume this is valid offer from someone else
-				return $bid["price"];
+				return $bid->price;
 			}
 		}
 
@@ -107,21 +109,21 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			return $sample;
 
 		if ($time->isNow()) {
-			$orderbook = \GalacticBot\StellarAPI::getPublicOrderBook($this->bot, $baseAsset, $counterAsset, 10);
+			$orderbook = Client::createTemporaryPublicClient()->getOrderbookForAssetPair($baseAsset, $counterAsset, 10);
 
 			$samples = new \GalacticBot\Samples(2);
 
-			if ($orderbook && isset($orderbook["asks"]))
+			if ($orderbook && isset($orderbook->asks))
 			{
-				$price = $this->excludeLastTradeFromOffers($orderbook["asks"]);
+				$price = $this->excludeLastTradeFromOffers($orderbook->asks);
 
 				if ($price !== null)
 					$samples->add($price);
 			}
 
-			if ($orderbook && isset($orderbook["bids"]))
+			if ($orderbook && isset($orderbook->bids))
 			{
-				$price = $this->excludeLastTradeFromOffers($orderbook["bids"]);
+				$price = $this->excludeLastTradeFromOffers($orderbook->bids);
 
 				if ($price !== null)
 					$samples->add($price);
@@ -161,22 +163,21 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			$end->subtract(1);
 		}
 
-		$list = \GalacticBot\StellarAPI::getPublicTradeAggregations($this->bot, $baseAsset, $counterAsset, $start, $end, \GalacticBot\StellarAPI::INTERVAL_MINUTE);
+		$list = \GalacticHorizon\Client::getInstance()->getTradeAggregations($baseAsset, $counterAsset, $start->getDateTime(), $end->getDateTime(), \GalacticHorizon\Client::INTERVAL_MINUTE);
 
 		if ($list)
 		{
 			$lastDate = new \GalacticBot\Time($start);
 
-			foreach($list AS $i => $record)
-			{
-				$date = \GalacticBot\Time::fromTimestamp($record->getTimestamp() / 1000);
+			foreach($list AS $i => $record) {
+				$date = \GalacticBot\Time::fromTimestamp($record->timestamp / 1000);
 
 				$isLastRecord = $i == count($list);
 
 				$range = \GalacticBot\Time::getRange($lastDate, $isLastRecord ? $end : $date);
 
 				foreach($range AS $rangeDate) {
-					$price = (float)number_format(($record->getLow()+$record->getHigh())/2, 7, '.', '');
+					$price = (float)number_format(($record->low+$record->high)/2, 7, '.', '');
 					$this->setT($rangeDate, "value", $price);
 				}
 

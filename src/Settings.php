@@ -29,8 +29,8 @@ class Settings
 	// Counter asset, for example MOBI
 	private $counterAsset = null;
 
-	// StellarAPI class instance
-	private $API = null;
+	// Working on test net?
+	private $onTestNet = null;
 
 	// Secret of the Stellar account we're trading on
 	private $accountSecret = null;
@@ -60,7 +60,7 @@ class Settings
 		$this->baseAsset = self::getFromArray($options, "baseAsset");
 		$this->baseAssetReservationAmount = self::getOptionalFromArray($options, "baseAssetReservationAmount");
 
-		$this->API = self::getFromArray($options, "API");
+		$this->onTestNet = (bool)self::getFromArray($options, "onTestNet");
 		$this->accountSecret = self::getFromArray($options, "accountSecret");
 
 		$this->counterAsset = self::getFromArray($options, "counterAsset");
@@ -121,18 +121,16 @@ class Settings
 	public function getCounterAsset() { return $this->counterAsset; }
 
 	/**
-	* Instance of the StellarAPI class
-	* @return StellarAPI
-	*/
-	public function getAPI() { return $this->API; }
-
-	/**
 	* Instance of the DataInterface implemtated class
 	* @return DataInterface
 	*/
 	public function getDataInterface()
 	{
 		return $this->dataInterface;
+	}
+
+	public function getIsOnTestNet() {
+		return $this->onTestNet ? true : false;
 	}
 
 	/**
@@ -150,7 +148,7 @@ class Settings
 	public function getAccountKeypair()
 	{
 		if (!$this->stellarAccountKeypair)
-			$this->stellarAccountKeypair = \ZuluCrypto\StellarSdk\Keypair::newFromSeed($this->accountSecret);
+			$this->stellarAccountKeypair = \GalacticHorizon\Account::createFromSecretKey($this->accountSecret);
 
 		return $this->stellarAccountKeypair;
 	}

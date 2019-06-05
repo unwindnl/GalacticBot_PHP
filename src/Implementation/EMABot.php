@@ -68,6 +68,9 @@ class EMABot extends \GalacticBot\Bot
 
 		// How many samples are taken for the long term EMA
 		"longTermSampleCount" => 220,
+
+		// Tipping point (percentage) of when to force the direction of the bot to buy or sell
+		"balanceTippingPointPercentage" => 66
 	);
 	
 	protected function initialize()
@@ -83,8 +86,27 @@ class EMABot extends \GalacticBot\Bot
 		$this->shortAboveLong = $this->data->get("shortAboveLong") == 1;
 	}
 
+	public function onFullReset() {
+		$this->shortTermSamples->clear();
+		$this->data->setS("shortTerm", $this->shortTermSamples);
+
+		$this->shortTermSaleSamples->clear();
+		$this->data->setS("shortTermSale", $this->shortTermSaleSamples);
+
+		$this->mediumTermSamples->clear();
+		$this->data->setS("mediumTerm", $this->mediumTermSamples);
+
+		$this->longTermSamples->clear();
+		$this->data->setS("longTerm", $this->longTermSamples);
+		
+		$this->data->set("tradeState", self::TRADE_STATE_BUFFERING);
+	}
+
 	public function getTradeStateLabel($forState) {
-		$counter = $this->settings->getCounterAsset()->getAssetCode();
+		$counter = $this->settings->getCounterAsset()->getCode();
+
+		if (!$counter)
+			$counter = "XLM";
 
 		$label = null;
 
@@ -94,7 +116,7 @@ class EMABot extends \GalacticBot\Bot
 		switch($forState)
 		{
 			case self::TRADE_STATE_BUFFERING:					$label = "Waiting for enough data"; break;
-			case self::TRADE_STATE_NONE:						$label = "Waiting for rise to buy $counter"; break;
+			case self::TRADE_STATE_NONE:						$label = "None, waiting for rise to buy $counter"; break;
 
 			case self::TRADE_STATE_BUY_DELAY:					$label = "Delaying to buy $counter"; break;
 			case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:		$label = "Negative trend, wait for bottom"; break;
@@ -112,19 +134,14 @@ class EMABot extends \GalacticBot\Bot
 		return $label;
 	}
 
-	protected function process(\GalacticBot\Time $time, $sample)
-	{
+	protected function process(\GalacticBot\Time $time, $sample) {
 		/*
 		// Test buy
-		$this->buy($time);
-		exit();
-		*/
-
-		/*
-		// Manually trigger trade/offer update
-		$trade = $this->data->getTradeByID(9);
-		$trade->updateFromAPIForBot($this->settings->getAPI(), $this);
-		exit();
+		if ($time->isNow()) {
+			$trade = $this->sell($time);
+			$trade->updateFromAPIForBot($this);
+			exit();
+		}
 		*/
 
 		$state = $this->data->get("state");
@@ -186,6 +203,52 @@ class EMABot extends \GalacticBot\Bot
 		}
 		else
 		{
+			if (!$lastTrade || $lastTrade->getIsFilledCompletely())
+			{
+				$baseAssetAmount = $this->getCurrentBaseAssetBudget();
+				$counterAssetAmountInBase = (1/$sample) * $this->getCurrentCounterAssetBudget();
+
+				// There are no trades, our balance can overide what our state is (trying to buy or sell)
+
+				$total = $baseAssetAmount + $counterAssetAmountInBase;
+
+				$baseBalancePercentage = round(10000 * ($baseAssetAmount / $total)) / 100;
+				$counterBalancePercentage = round(10000 * ($counterAssetAmountInBase / $total)) / 100;
+
+				$balanceTippingPointPercentage = $this->settings->get("balanceTippingPointPercentage");
+
+				if ($baseBalancePercentage >= $balanceTippingPointPercentage)
+				{
+					$this->data->logVerbose("Current asset balance is: base {$baseBalancePercentage}% and counter {$counterBalancePercentage}%. We've crossed the tipping point with the base balance. Let's see if we need to change state.");
+
+					switch($tradeState)
+					{
+						case self::TRADE_STATE_SELL_WAIT:
+						case self::TRADE_STATE_SELL_DELAY:
+						case self::TRADE_STATE_SELL_WAIT_POSITIVE:
+						case self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT:
+						case self::TRADE_STATE_SELL_WAIT_FOR_TRADES:
+								$this->data->logVerbose("Yes, we're flipping our state to be able to buy the counter asset.");
+								$tradeState = self::TRADE_STATE_BUY_DELAY;
+							break;
+					}
+				}
+				else if ($counterBalancePercentage >= $balanceTippingPointPercentage)
+				{
+					$this->data->logVerbose("Current asset balance is: base {$baseBalancePercentage}% and counter {$counterBalancePercentage}%. We've crossed the tipping point with the counter balance. Let's see if we need to change state.");
+
+					switch($tradeState)
+					{
+						case self::TRADE_STATE_BUY_DELAY:
+						case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:
+						case self::TRADE_STATE_BUY_PENDING:
+								$this->data->logVerbose("Yes, we're flipping our state to be able to buy the base asset.");
+								$tradeState = self::TRADE_STATE_SELL_WAIT;
+							break;
+					}
+				}
+			}
+
 			switch($tradeState)
 			{
 				case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:
@@ -273,7 +336,7 @@ class EMABot extends \GalacticBot\Bot
 
 											if ($priceChanged)
 											{
-												$this->buy($time, $lastTrade);
+												$this->buy($time, $lastTrade, null, 1/$sample);
 
 												$tradeState = self::TRADE_STATE_BUY_PENDING;
 
@@ -300,7 +363,7 @@ class EMABot extends \GalacticBot\Bot
 									} else /* negative trend: $this->predictionDirection < 0 */ {
 										if ($tradeState == self::TRADE_STATE_BUY_PENDING)
 										{
-											$this->data->logVerbose("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
+											$this->data->logVerbose("Cancel trade, we're in a negative trend now.");
 
 											$this->cancel($time, $lastTrade);
 
@@ -395,7 +458,7 @@ class EMABot extends \GalacticBot\Bot
 									{
 										$this->data->logWarning("Not selling based on old data (live mode).");
 									}
-									else if ($this->sell($time, $lastTrade))
+									else if ($this->sell($time, $lastTrade, null, 1/$currentPrice))
 									{
 										$tradeState = self::TRADE_STATE_SELL_WAIT_FOR_TRADES;
 									}

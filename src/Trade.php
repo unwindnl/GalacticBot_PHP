@@ -28,8 +28,6 @@ class Trade
 
 	function __construct()
 	{
-		$date = new \DateTime();
-		$this->createdAt = $date->format("Y-m-d H:i:s");
 	}
 
 	function setData(Array $data)
@@ -92,7 +90,8 @@ class Trade
 	function getSpentAmount() { return $this->spentAmount; }
 	function getAmountRemaining() { return $this->amountRemaining; }
 
-	function getCreatedAt() { return new \DateTime($this->createdAt); }
+	function getCreatedAt() { global $_BASETIMEZONE; return new \DateTime($this->createdAt, $_BASETIMEZONE); }
+	function getUpdatedAt() { global $_BASETIMEZONE; return new \DateTime($this->updatedAt, $_BASETIMEZONE); }
 	function getProcessedAt() { return new \DateTime($this->processedAt); }
 
 	function getFillPercentage() { return $this->fillPercentage; }
@@ -135,12 +134,12 @@ class Trade
 				"offerID" => $this->offerID,
 
 				"sellingAssetType" => $buyingAsset->getType(),
-				"sellingAssetCode" => $buyingAsset->getAssetCode(),
+				"sellingAssetCode" => $buyingAsset->getCode(),
 
 				"sellingAmount" => $this->sellAmount * $price,
 
 				"buyingAssetType" => $sellingAsset->getType(),
-				"buyingAssetCode" => $sellingAsset->getAssetCode(),
+				"buyingAssetCode" => $sellingAsset->getCode(),
 			);
 		}
 		else
@@ -153,169 +152,159 @@ class Trade
 				"offerID" => $this->offerID,
 
 				"sellingAssetType" => $sellingAsset->getType(),
-				"sellingAssetCode" => $sellingAsset->getAssetCode(),
+				"sellingAssetCode" => $sellingAsset->getCode(),
 
 				"sellingAmount" => $sellingAmount * (1/$price),
 
 				"buyingAssetType" => $buyingAsset->getType(),
-				"buyingAssetCode" => $buyingAsset->getAssetCode(),
+				"buyingAssetCode" => $buyingAsset->getCode(),
 			);
 		}
 		
 		$this->boughtAmount = $claimedOffers[0]["sellingAmount"];
 
 		$this->claimedOffers = json_encode($claimedOffers);
-
-		//var_dump($this);
-		//exit();
-		
-		if ($type == self::TYPE_SELL)
-		{
-	//		var_dump($this);
-	//		exit();
-		}
 	}
 
-	function getTradeInfo($trade) {
-		return (object)Array(
-			"offerID" => $this->offerID,
-
-			"sellingAssetType" => $trade->getCounterAsset()->getType(),
-			"sellingAssetCode" => $trade->getCounterAsset()->getAssetCode(),
-
-			"sellingAmount" => $this->type == self::TYPE_BUY ? $trade->getCounterAmount() : $trade->getBaseAmount(),
-
-			"buyingAssetType" => $trade->getBaseAsset()->getType(),
-			"buyingAssetCode" => $trade->getBaseAsset()->getAssetCode(),
-
-			"price" => $trade->getPrice()
-		);
-	}
-
-	function updateFromAPIForBot(StellarAPI $api, Bot $bot)
+	function addCompletedHorizonTradeForBot(\GalacticHorizon\Trade $trade, $bot)
 	{
-		$isOpen = true;
+		if ($this->state == self::STATE_FILLED)
+			return;
 
-		$claimedOffers = $this->claimedOffers ? json_decode($this->claimedOffers) : [];
+			$claimedOffers = @json_decode($this->claimedOffers);
 
-		$claimedOffers = (Array)$claimedOffers;
+			if (!$claimedOffers)
+				$claimedOffers = [];
+			else
+				$claimedOffers = (Array)$claimedOffers;
 
-		if (!$this->offerID && $claimedOffers) {
+			if (1)
+			{
+				$baseIsBot = $trade->getBaseAccount()->getPublicKey() == $bot->getSettings()->getAccountPublicKey();
+				$otherAccountID = $baseIsBot ? $trade->getCounterAccount()->getPublicKey() : $trade->getBaseAccount()->getPublicKey();
+				$uniqueID = $trade->getOfferID() . "_" . $trade->getCounterOfferID() . "_" . $otherAccountID . "_" . number_format($trade->getCounterAmount()->toFloat(), 7);
 
-			foreach($claimedOffers AS $offer)
-				if ($offer->offerID)
-					$this->offerID = $offer->offerID;
-		}
+				$info = Array(
+					"offerID" => $trade->getOfferID(),
+					"counterOfferID" => $trade->getCounterOfferID(),
+				);
 
-		if ($this->offerID) {
-			$offerInfo = $api->getOfferInfoByID($bot, $this->offerID);
+				if ($baseIsBot)
+				{
+					$info["sellingAssetType"] = $trade->getBaseAsset()->getType();
+					$info["sellingAssetCode"] = $trade->getBaseAsset()->getCode();
 
-			if (!$offerInfo["isOpen"])
-				$isOpen = false;
+					$info["counterAssetType"] = $trade->getCounterAsset()->getType();
+					$info["counterAssetCode"] = $trade->getCounterAsset()->getCode();
 
-			if ($offerInfo["trades"]) {
-				foreach($offerInfo["trades"] AS $trade) {
-					if (
-						$bot->getSettings()->getAccountPublicKey() == $trade->getBaseAccount()
-					||	$bot->getSettings()->getAccountPublicKey() == $trade->getCounterAccount()
-					) {
-						$claimedOffers[$trade->getID()] = $this->getTradeInfo($trade);
-					}
+					$info["price"] = 1/$trade->getPrice()->toFloat();
+
+					$info["sellingAmount"] = number_format((1/$trade->getPrice()->toFloat()) * $trade->getCounterAmount()->toFloat(), 7);
 				}
-			
-				$this->claimedOffers = json_encode($claimedOffers);
-		
-				$bot->getDataInterface()->saveTrade($this);
+				else
+				{
+					$info["counterAssetType"] = $trade->getBaseAsset()->getType();
+					$info["counterAssetCode"] = $trade->getBaseAsset()->getCode();
+
+					$info["sellingAssetType"] = $trade->getCounterAsset()->getType();
+					$info["sellingAssetCode"] = $trade->getCounterAsset()->getCode();
+
+					$info["price"] = 1/$trade->getPrice()->toFloat();
+
+					$info["sellingAmount"] = $trade->getCounterAmount()->toFloat();
+				}
+
+				$claimedOffers[$uniqueID] = (object)$info;
 			}
-		}
 
-	//	var_dump("claimedOffers = ", $claimedOffers);
-//		exit();
-		
-		if ($claimedOffers)
-		{
+			$this->claimedOffers = json_encode($claimedOffers);
+
+			$this->amountRemaining = $this->sellAmount;
 			$this->boughtAmount = 0;
-
-			if ($this->type == self::TYPE_BUY)
-				$amountWanted = (float)number_format($this->sellAmount * 1/$this->price, 7);
-			else
-				$amountWanted = (float)number_format($this->sellAmount * $this->price, 7);
-
-			$this->amountRemaining = $amountWanted;
-
-			$paidPrice = [];
-
+			$paidPrices = [];
+	
 			foreach($claimedOffers AS $offer)
 			{
-				if (is_array($offer))
-					$offer = (object)$offer;
-
-				$this->boughtAmount += $offer->sellingAmount;
 				$this->amountRemaining -= $offer->sellingAmount;
-				$paidPrice[] = 1 / $offer->price;
+				$this->boughtAmount += $offer->sellingAmount;
+				$paidPrices[] = $offer->price;
 			}
-		
-			$this->amountRemaining = (float)number_format($this->amountRemaining, 7);
 
-			$amountFulfilled = $amountWanted - $this->amountRemaining;
-			$fillPercentage = $amountFulfilled / $amountWanted;
-
-			$this->fillPercentage = round($fillPercentage * 100 * 100) / 100;
-			
-			if ($this->fillPercentage >= 99.999)
-				$this->state = self::STATE_FILLED;
-				
 			$this->amountRemaining = number_format($this->amountRemaining, 7);
-			$this->paidPrice = array_average($paidPrice);
+			$this->boughtAmount = number_format($this->boughtAmount, 7);
+
+			$percentage = 100 * (1-($this->amountRemaining / $this->sellAmount));
+
+			$this->fillPercentage = round($percentage * 100) / 100; // Two decimals
+
+			// Not really correct to just take an average of all paid prices
+			$this->paidPrice = array_average($paidPrices);
 			
-			if ($this->type == self::TYPE_BUY)
-			{
-				$this->spentAmount = number_format($this->boughtAmount * $this->price, 7);
-			}
-			else
-			{
-				$this->spentAmount = number_format($this->boughtAmount * (1/$this->price), 7);
-			}
-		}
+			if ($this->fillPercentage >= 99.99) {
+				// Make sure the offer is closed
+				$bot->cancel(\GalacticBot\Time::now(true), $this, null);
 
-	/*
-		// Closed / cancelled
-		if (!$isOpen && $this->state == self::STATE_CREATED) {
-			$this->state = self::STATE_CANCELLED;
-		}
-	*/
+				$this->state = self::STATE_FILLED;
+			}
 		
-		if ($this->state == self::STATE_CREATED)
-			$bot->getDataInterface()->logVerbose("Trade #{$this->ID} (offerID: #{$this->offerID}) is not fulfilled yet (fill: {$this->fillPercentage}%).");
-
-		$bot->getDataInterface()->saveTrade($this);
+			$bot->getDataInterface()->saveTrade($this);
 	}
 
-	static function fromHorizonOperationAndResultForBot(
-		\ZuluCrypto\StellarSdk\XdrModel\Operation\ManageOfferOp $operation,
-		\ZuluCrypto\StellarSdk\XdrModel\ManageOfferResult $result,
+	function getTradeInfo($trade, $fromTransactionResult = false) {
+		$o = (object)Array(
+			"offerID" => $this->offerID,
+		);
+
+		if ($fromTransactionResult) {
+			$o->sellingAssetType = $trade->getAssetSold()->getType();
+			$o->sellingAssetCode = $trade->getAssetSold()->getCode();
+
+			$o->buyingAssetType = $trade->getAssetBought()->getType();
+			$o->buyingAssetCode = $trade->getAssetBought()->getCode();
+			
+			$o->sellingAmount = $this->type == self::TYPE_BUY ? $trade->getAmountSold()->getScaledValue() : $trade->getAmountBought()->getScaledValue();
+		} else {
+			$o->sellingAssetType = $trade->getCounterAsset()->getType();
+			$o->sellingAssetCode = $trade->getCounterAsset()->getCode();
+
+			$o->buyingAssetType = $trade->getBaseAsset()->getType();
+			$o->buyingAssetCode = $trade->getBaseAsset()->getCode();
+			
+			$o->sellingAmount = $this->type == self::TYPE_BUY ? $trade->getCounterAmount() : $trade->getBaseAmount();
+			
+			$o->price = $trade->getPrice();
+		}
+
+		return $o;
+	}
+
+	static function fromGalacticHorizonOperationResponseAndResultForBot(
+		\GalacticHorizon\ManageOfferOperation $operation,
+		\GalacticHorizon\TransactionResult $response,
+		\GalacticHorizon\ManageOfferOperationResult $result,
 		$transactionEnvelopeXdrString,
 		$paidFee,
 		\GalacticBot\Bot $bot
-	)
-	{
+	) {
+		global $_BASETIMEZONE;
+
+		$now = new \DateTime(null, $_BASETIMEZONE);
+
 		$o = new self();
 		$o->state = self::STATE_CREATED;
 		$o->transactionEnvelopeXdr = $transactionEnvelopeXdrString;
 		$o->ID = null;
+		$o->createdAt = $now->format("Y-m-d H:i:s");
+		$o->offerID = $result->getOffer() ? $result->getOffer()->getOfferID() : null;
+		$o->hash = $response ? $response->getHash() : null;
 
-		$o->offerID = $result->getOffer() ? $result->getOffer()->getOfferId() : null;
+		$o->claimedOffers = json_encode([]);
 
-		$claimedOfferList = $result->getClaimedOffers();
-		$claimedOffers = [];
-
-		foreach($claimedOfferList AS $trade)
-			if (!$o->offerID)
-				$o->offerID = $trade->getOfferId();
-
-		$o->claimedOffers = json_encode(Array());
-
-		$o->type = $operation->getSellingAsset()->getType() == \ZuluCrypto\StellarSdk\XdrModel\Asset::TYPE_NATIVE ? self::TYPE_BUY : self::TYPE_SELL;
+		if ($bot->baseAssetIsNative()) {
+			$o->type = $operation->getSellingAsset()->getType() == \GalacticHorizon\Asset::TYPE_NATIVE ? self::TYPE_BUY : self::TYPE_SELL;
+		} else {
+			$o->type = $operation->getSellingAsset()->getType() == \GalacticHorizon\Asset::TYPE_NATIVE ? self::TYPE_SELL : self::TYPE_BUY;
+		}
 
 		$o->priceN = $operation->getPrice()->getNumerator();
 		$o->priceD = $operation->getPrice()->getDenominator();
@@ -326,9 +315,9 @@ class Trade
 			$o->price = $o->priceN / $o->priceD;
 
 		if ($o->type == self::TYPE_BUY)
-			$o->sellAmount = $operation->getAmount()->getScaledValue();
+			$o->sellAmount = $operation->getAmount()->toFloat();
 		else
-			$o->sellAmount = $operation->getAmount()->getScaledValue();
+			$o->sellAmount = $operation->getAmount()->toFloat();
 
 		$o->fee = $paidFee;
 		
