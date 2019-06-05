@@ -749,13 +749,23 @@ abstract class Bot
 		$balances = $this->getAccountBalances();
 
 		if ($balances) {
+			$botCounterAssetCode = $this->settings->getCounterAsset()->getCode();
+			$botCounterAssetIssuer = $this->settings->getCounterAsset()->getIssuer() ? $this->settings->getCounterAsset()->getIssuer()->getPublicKey() : null;
+
 			foreach($balances as $balance) {
-				$assetCode = $balance->assetCode;
 
-				if ($balance->assetIsNative)
+				if ($balance->assetIsNative) {
 					$assetCode = null;
+					$assetIssuer = null;
+				} else {
+					$assetCode = $balance->assetCode;
+					$assetIssuer = $balance->assetIssuer;
+				}
 
-				if ($this->settings->getCounterAsset()->getCode() == $assetCode) {
+				if (
+					$botCounterAssetCode == $assetCode
+				&&	$botCounterAssetIssuer == $assetIssuer
+				) {
 					if (!$assetCode && $subtractMinimumXLMReserve)
 						return self::stroopsToInt($balance->balanceInStroops) - $this->getMinimumXLMRequirement();
 					else
