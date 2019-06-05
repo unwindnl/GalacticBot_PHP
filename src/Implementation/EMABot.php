@@ -87,6 +87,21 @@ class EMABot extends \GalacticBot\Bot
 	}
 
 	public function onFullReset() {
+		$maxMinutes = max(
+			$this->settings->get("shortTermSampleCount"),
+			$this->settings->get("shortTermSaleSampleCount"),
+			$this->settings->get("mediumTermSampleCount"),
+			$this->settings->get("longTermSampleCount")
+		);
+
+		$maxDateBack = \GalacticBot\Time::now();
+		$maxDateBack->subtract($maxMinutes, "minutes");
+
+		$this->lastProcessingTime = $maxDateBack;
+		$this->data->set("lastProcessingTime", $maxDateBack->toString());
+		$this->data->set("firstProcessingTime", null);
+		$this->data->directSet("firstProcessingTime", null);
+
 		$this->shortTermSamples->clear();
 		$this->data->setS("shortTerm", $this->shortTermSamples);
 
