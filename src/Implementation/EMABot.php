@@ -217,34 +217,37 @@ class EMABot extends \GalacticBot\Bot
 
 				$balanceTippingPointPercentage = $this->settings->get("balanceTippingPointPercentage");
 
-				if ($baseBalancePercentage >= $balanceTippingPointPercentage)
+				if ($total > 0)
 				{
-					$this->data->logVerbose("Current asset balance is: base {$baseBalancePercentage}% and counter {$counterBalancePercentage}%. We've crossed the tipping point with the base balance. Let's see if we need to change state.");
-
-					switch($tradeState)
+					if ($baseBalancePercentage >= $balanceTippingPointPercentage)
 					{
-						case self::TRADE_STATE_SELL_WAIT:
-						case self::TRADE_STATE_SELL_DELAY:
-						case self::TRADE_STATE_SELL_WAIT_POSITIVE:
-						case self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT:
-						case self::TRADE_STATE_SELL_WAIT_FOR_TRADES:
-								$this->data->logVerbose("Yes, we're flipping our state to be able to buy the counter asset.");
-								$tradeState = self::TRADE_STATE_BUY_DELAY;
-							break;
+						$this->data->logVerbose("Current asset balance is: base {$baseBalancePercentage}% and counter {$counterBalancePercentage}%. We've crossed the tipping point with the base balance. Let's see if we need to change state.");
+
+						switch($tradeState)
+						{
+							case self::TRADE_STATE_SELL_WAIT:
+							case self::TRADE_STATE_SELL_DELAY:
+							case self::TRADE_STATE_SELL_WAIT_POSITIVE:
+							case self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT:
+							case self::TRADE_STATE_SELL_WAIT_FOR_TRADES:
+									$this->data->logVerbose("Yes, we're flipping our state to be able to buy the counter asset.");
+									$tradeState = self::TRADE_STATE_BUY_DELAY;
+								break;
+						}
 					}
-				}
-				else if ($counterBalancePercentage >= $balanceTippingPointPercentage)
-				{
-					$this->data->logVerbose("Current asset balance is: base {$baseBalancePercentage}% and counter {$counterBalancePercentage}%. We've crossed the tipping point with the counter balance. Let's see if we need to change state.");
-
-					switch($tradeState)
+					else if ($counterBalancePercentage >= $balanceTippingPointPercentage)
 					{
-						case self::TRADE_STATE_BUY_DELAY:
-						case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:
-						case self::TRADE_STATE_BUY_PENDING:
-								$this->data->logVerbose("Yes, we're flipping our state to be able to buy the base asset.");
-								$tradeState = self::TRADE_STATE_SELL_WAIT;
-							break;
+						$this->data->logVerbose("Current asset balance is: base {$baseBalancePercentage}% and counter {$counterBalancePercentage}%. We've crossed the tipping point with the counter balance. Let's see if we need to change state.");
+
+						switch($tradeState)
+						{
+							case self::TRADE_STATE_BUY_DELAY:
+							case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:
+							case self::TRADE_STATE_BUY_PENDING:
+									$this->data->logVerbose("Yes, we're flipping our state to be able to buy the base asset.");
+									$tradeState = self::TRADE_STATE_SELL_WAIT;
+								break;
+						}
 					}
 				}
 			}
