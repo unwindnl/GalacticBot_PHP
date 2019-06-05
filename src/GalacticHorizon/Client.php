@@ -174,7 +174,7 @@ public function stream($URL, Array $data, callable $callback, $automaticlyReconn
 {
 	$this->retryAfterTime = 1000;
 	$this->streamCallback = $callback;
-	$this->cursor = "102837532999315457-0";//$data["cursor"];
+	$this->cursor = $data["cursor"];
 	$this->inBuffer = "";
 	$this->lineBuffer = "";
 
