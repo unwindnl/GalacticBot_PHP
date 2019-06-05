@@ -688,7 +688,7 @@ abstract class Bot
 
 		if ($balances) {
 			$botBaseAssetCode = $this->settings->getBaseAsset()->getCode();
-			$botBaseAssetIssuer = $this->settings->getBaseAsset()->getIssuer() ? $this->settings->getBaseAsset()->getIssuer()->getAccountIdString() : null;
+			$botBaseAssetIssuer = $this->settings->getBaseAsset()->getIssuer() ? $this->settings->getBaseAsset()->getIssuer()->getPublicKey() : null;
 
 			foreach($balances AS $balance) {
 				if ($balance->assetIsNative) {

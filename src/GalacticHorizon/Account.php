@@ -235,7 +235,6 @@ public function getOffersStreaming($cursor, \Closure $callback) {
 			"cursor" => $cursor
 		],
 		function($data) use (&$callback) {
-	var_dump("createFromJSON: ", $data);
 			$callback(Offer::createFromJSON($data));
 		}
 	);
