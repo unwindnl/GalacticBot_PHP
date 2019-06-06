@@ -21,7 +21,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$this->mysqli = new \mysqli($server, $user, $password, $database);
 
 		if ($this->mysqli->connect_errno) {
-			throw Exception("Mysql error #{$this->mysqli->connect_errno} {$this->mysqli->connect_error}");
+			throw new \Exception("Mysql error #{$this->mysqli->connect_errno} {$this->mysqli->connect_error}");
 		}
 	}
 
