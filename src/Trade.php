@@ -226,7 +226,12 @@ class Trade
 			foreach($claimedOffers AS $offer)
 			{
 				$this->amountRemaining -= $offer->sellingAmount;
-				$this->boughtAmount += $offer->sellingAmount;
+
+				if ($this->type == self::TYPE_BUY)
+					$this->boughtAmount += $offer->sellingAmount * (1/$offer->price);
+				else
+					$this->boughtAmount += $offer->sellingAmount * ($offer->price);
+
 				$paidPrices[] = $offer->price;
 			}
 
