@@ -17,12 +17,19 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 	protected $sampleBuffers = [];
 
-	function __construct($server, $user, $password, $database) {
-		$this->mysqli = new \mysqli($server, $user, $password, $database);
+	static $mysqli = null;
 
-		if ($this->mysqli->connect_errno) {
-			throw new \Exception("Mysql error #{$this->mysqli->connect_errno} {$this->mysqli->connect_error}");
+	function __construct($server, $user, $password, $database) {
+		self::$mysqli = new \mysqli($server, $user, $password, $database);
+
+		if (self::$mysqli->connect_errno) {
+			throw Exception("Mysql error #{self::$mysqli->connect_errno} {self::$mysqli->connect_error}");
 		}
+	}
+
+	static function escape_string($str)
+	{
+		return self::$mysqli->real_escape_string($str);
 	}
 
 	function isSetting($name)
@@ -206,7 +213,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 			if (!$result = $this->query($sql))
 			{
-				throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+				throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 			}
 
 			$row = $result->fetch_assoc();
@@ -237,25 +244,25 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$sql = "
 			DELETE FROM
 					BotData
-			WHERE	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+			WHERE	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 				AND	name <> 'value'
 				AND	name NOT LIKE 'setting_%'
 		";
 		
 		if (!$result = $this->query($sql))
 		{
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 		}
 
 		$sql = "
 			DELETE FROM
 					BotTrade
-			WHERE	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+			WHERE	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 		";
 		
 		if (!$result = $this->query($sql))
 		{
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 		}
 
 		$this->sampleBuffers = [];
@@ -270,14 +277,14 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			SELECT	*
 			FROM	BotTrade
 			WHERE	state NOT IN ('" . \GalacticBot\Trade::STATE_CANCELLED . "', '" . \GalacticBot\Trade::STATE_REPLACED . "')
-				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+				AND	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
 					processedAt DESC
 			LIMIT	1
 		";
 	
 		if (!$result = $this->query($sql))
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 
 		$row = $result->fetch_assoc();
 
@@ -294,14 +301,14 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			SELECT	*
 			FROM	BotTrade
 			WHERE	state = '" . \GalacticBot\Trade::STATE_FILLED . "'
-				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+				AND	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
 					processedAt ASC
 			LIMIT	1
 		";
 	
 		if (!$result = $this->query($sql))
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 
 		$row = $result->fetch_assoc();
 
@@ -325,14 +332,14 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			SELECT	*
 			FROM	BotTrade
 			WHERE	state = '" . \GalacticBot\Trade::STATE_FILLED . "'
-				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+				AND	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
 					processedAt DESC
 			LIMIT	1
 		";
 	
 		if (!$result = $this->query($sql))
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 
 		$row = $result->fetch_assoc();
 
@@ -355,7 +362,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$sql = "
 			SELECT	*
 			FROM	BotTrade
-			WHERE	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+			WHERE	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
 					$order
 			LIMIT
@@ -363,7 +370,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		";
 
 		if (!$result = $this->query($sql))
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 
 		while(($row = $result->fetch_assoc())) {
 			$trade = new \GalacticBot\Trade();
@@ -382,15 +389,15 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$sql = "
 			SELECT	*
 			FROM	BotTrade
-			WHERE	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
-				AND	processedAt >= '" . $this->mysqli->real_escape_string($begin->toString()) . "'
-				AND	processedAt < '" . $this->mysqli->real_escape_string($end->toString()) . "'
+			WHERE	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
+				AND	processedAt >= '" . self::escape_string($begin->toString()) . "'
+				AND	processedAt < '" . self::escape_string($end->toString()) . "'
 			ORDER BY
 					processedAt ASC
 		";
 
 		if (!$result = $this->query($sql))
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 
 		while(($row = $result->fetch_assoc())) {
 			$trade = new \GalacticBot\Trade();
@@ -411,11 +418,11 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			SELECT	*
 			FROM	BotTrade
 			WHERE	ID = " . $this->escapeSQLValue($ID) . "
-				AND	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+				AND	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 		";
 	
 		if (!$result = $this->query($sql))
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 
 		$row = $result->fetch_assoc();
 
@@ -450,7 +457,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	
 		if (!$result = $this->query($sql))
 		{
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 		}
 	}
 
@@ -487,10 +494,10 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	
 		if (!$result = $this->query($sql))
 		{
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 		}
 
-		$trade->setID($this->mysqli->insert_id);
+		$trade->setID(self::$mysqli->insert_id);
 	}
 
 	function escapeSQLValue($value)
@@ -498,7 +505,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		if ($value === NULL)
 			return "NULL";
 
-		return "'" . $this->mysqli->real_escape_string($value) . "'";
+		return "'" . self::escape_string($value) . "'";
 	}
 
 	function get($name, $defaultValue = null)
@@ -529,10 +536,10 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			)
 			VALUES
 			(
-				'" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "',
-				'" . $this->mysqli->real_escape_string($name) . "',
+				'" . self::escape_string($this->bot->getSettings()->getID()) . "',
+				'" . self::escape_string($name) . "',
 				'0000-00-00 00:00:00',
-				'" . $this->mysqli->real_escape_string($value) . "'
+				'" . self::escape_string($value) . "'
 			)
 		";
 
@@ -545,14 +552,14 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			SELECT	value
 			FROM	BotData
 			WHERE
-					botID	= '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
-				AND	name	= '" . $this->mysqli->real_escape_string($name) . "'
-				AND	date	= '" . $this->mysqli->real_escape_string($time->toString()) . "'
+					botID	= '" . self::escape_string($this->bot->getSettings()->getID()) . "'
+				AND	name	= '" . self::escape_string($name) . "'
+				AND	date	= '" . self::escape_string($time->toString()) . "'
 		";
 	
 		if (!$result = $this->query($sql))
 		{
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 		}
 
 		$row = $result->fetch_assoc();
@@ -569,9 +576,9 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			SELECT	value
 			FROM	BotData
 			WHERE
-					botID	= '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
-				AND	name	= '" . $this->mysqli->real_escape_string($name) . "'
-				AND	date	<= '" . $this->mysqli->real_escape_string($time->toString()) . "'
+					botID	= '" . self::escape_string($this->bot->getSettings()->getID()) . "'
+				AND	name	= '" . self::escape_string($name) . "'
+				AND	date	<= '" . self::escape_string($time->toString()) . "'
 			ORDER BY
 					date DESC
 			LIMIT	1
@@ -579,7 +586,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	
 		if (!$result = $this->query($sql))
 		{
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 		}
 
 		$row = $result->fetch_assoc();
@@ -596,9 +603,9 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			SELECT	value
 			FROM	BotData
 			WHERE
-					botID	= '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
-				AND	name	= '" . $this->mysqli->real_escape_string($name) . "'
-				AND	date	<= '" . $this->mysqli->real_escape_string($time->toString()) . "'
+					botID	= '" . self::escape_string($this->bot->getSettings()->getID()) . "'
+				AND	name	= '" . self::escape_string($name) . "'
+				AND	date	<= '" . self::escape_string($time->toString()) . "'
 			ORDER BY
 					date ASC
 			LIMIT	1
@@ -606,7 +613,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	
 		if (!$result = $this->query($sql))
 		{
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 		}
 
 		$row = $result->fetch_assoc();
@@ -629,10 +636,10 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			)
 			VALUES
 			(
-				'" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "',
-				'" . $this->mysqli->real_escape_string($name) . "',
-				'" . $this->mysqli->real_escape_string($time->toString()) . "',
-				'" . $this->mysqli->real_escape_string($value) . "'
+				'" . self::escape_string($this->bot->getSettings()->getID()) . "',
+				'" . self::escape_string($name) . "',
+				'" . self::escape_string($time->toString()) . "',
+				'" . self::escape_string($value) . "'
 			)
 		";
 
@@ -640,7 +647,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 		if (!$result = $this->query($sql))
 		{
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 		}
 	}
 
@@ -673,13 +680,13 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			SELECT	name,
 					value
 			FROM	BotData
-			WHERE	botID = '" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "'
+			WHERE	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 				AND	date = '0000-00-00 00:00:00'
 		";
 		
 		if (!$result = $this->query($sql))
 		{
-			throw new \Exception("Mysql error #{$this->mysqli->errno}: {$this->mysqli->error}.");
+			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
 		}
 
 		while($row = $result->fetch_assoc())
@@ -723,10 +730,10 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				)
 				VALUES
 				(
-					'" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "',
-					'" . $this->mysqli->real_escape_string($k) . "',
+					'" . self::escape_string($this->bot->getSettings()->getID()) . "',
+					'" . self::escape_string($k) . "',
 					'0000-00-00 00:00:00',
-					'" . $this->mysqli->real_escape_string($v) . "'
+					'" . self::escape_string($v) . "'
 				)
 			";
 
@@ -754,10 +761,10 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 					)
 					VALUES
 					(
-						'" . $this->mysqli->real_escape_string($this->bot->getSettings()->getID()) . "',
-						'SB_" . $this->mysqli->real_escape_string($k) . "',
+						'" . self::escape_string($this->bot->getSettings()->getID()) . "',
+						'SB_" . self::escape_string($k) . "',
 						'0000-00-00 00:00:00',
-						'" . $this->mysqli->real_escape_string(json_encode($jv)) . "'
+						'" . self::escape_string(json_encode($jv)) . "'
 					)
 				";
 
@@ -772,7 +779,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 	//	echo $sql;
 		
-		$res = $this->mysqli->query($sql);
+		$res = self::$mysqli->query($sql);
 
 	//	$stop = microtime(true);
 
