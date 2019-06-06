@@ -22,6 +22,10 @@ static public function createFromFloat(float $value) {
 	return $o;
 }
 
+public function isValid() {
+	return !(is_nan($this->numerator) || is_nan($this->denominator) || is_infinite($this->numerator) || is_infinite($this->denominator));
+}
+
 public function toFloat() {
 	return $this->numerator / $this->denominator;
 }

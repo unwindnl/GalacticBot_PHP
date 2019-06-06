@@ -1024,13 +1024,13 @@ abstract class Bot
 
 		$buyingAmount = $price * $sellingAmount;
 
-		$buyingAmount = (float)number_format($buyingAmount, 7, '.', '');
-		$sellingAmount = (float)number_format($sellingAmount, 7, '.', '');
-
 		if ($isBuyOffer)
 			$price = \GalacticHorizon\Price::createFromFloat($buyingAmount / $sellingAmount);
 		else
 			$price = \GalacticHorizon\Price::createFromFloat($sellingAmount / $buyingAmount);
+
+		$buyingAmount = (float)number_format($buyingAmount, 7, '.', '');
+		$sellingAmount = (float)number_format($sellingAmount, 7, '.', '');
 
 		$buyingAmount = \GalacticHorizon\Amount::createFromFloat($buyingAmount);
 		$sellingAmount = \GalacticHorizon\Amount::createFromFloat($sellingAmount);
