@@ -912,6 +912,10 @@ abstract class Bot
 	*/
 	function cancel(Time $processingTime, Trade $trade, $newState = Trade::STATE_CANCELLED)
 	{
+		// only try to cancel orders which are open
+		if ($trade->getState() != Trade::STATE_CREATED)
+			return;
+
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
 		{
 			if ($trade->getType() == Trade::TYPE_SELL)
