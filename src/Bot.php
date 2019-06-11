@@ -409,6 +409,117 @@ abstract class Bot
 		}
 	}
 
+	protected $profilingEnabled = false;
+	protected $profiling = [];
+	protected $profileLastID = null;
+	protected $profileCount = 0;
+
+	function profileStart()
+	{
+		if (!$this->profilingEnabled)
+			return;
+
+		$this->profileLastID = null;
+	}
+
+	function profile($what, $file, $line)
+	{
+		if (!$this->profilingEnabled)
+			return;
+
+		$ID = $file . $line;
+
+		$tick = microtime(true);
+
+		if ($this->profileLastID)
+			$this->profiling[$this->profileLastID]["stop"] = $tick;
+
+		if (!isset($this->profiling[$ID])) {
+			$this->profiling[$ID] = Array(
+				"start" => $tick,
+				"what" => $what
+			);
+		}
+		else
+		{
+			$this->profiling[$ID]["start"] = $tick;
+		}
+		
+		$this->profileLastID = $ID;
+	}
+
+	function profileEndTask()
+	{
+		if (!$this->profilingEnabled)
+			return;
+
+		$ID = $file . $line;
+
+		$tick = microtime(true);
+
+		if ($this->profileLastID)
+			$this->profiling[$this->profileLastID]["stop"] = $tick;
+
+		$this->profileLastID = null;
+	}
+
+	function profileStop()
+	{
+		if (!$this->profilingEnabled)
+			return;
+
+		$this->profileEndTask();
+
+		foreach($this->profiling AS $ID => $info) {
+			$info["duration"] = $info["stop"] - $info["start"];
+			$info["total"] += $info["duration"];
+
+			$this->profiling[$ID] = $info;
+		}
+
+		if ($this->profileCount++ >= 20)
+		{
+			uasort(
+				$this->profiling,
+				function($a, $b)
+				{
+					if ($a["total"] == $b["total"])
+						return 0;
+
+					return $a["total"] > $b["total"] ? -1 : 1;
+				}
+			);
+
+			echo "[PROFILING]\n";
+
+			foreach($this->profiling AS $info)
+			{
+				$intValue = (int)$info["total"];
+				$decimals = $info["total"] - $intValue;
+
+				$time = sprintf("%04d.%05d", $intValue, abs(round($decimals*100000)));
+
+				for($i=0; $i<strlen($time); $i++)
+				{
+					if ($time[$i] == '0' && $time[$i+1] != '.')
+						$time[$i] = ' ';
+					else if ($time[$i] == '.')
+						$i = strlen($time);
+				}
+
+				$what = $info["what"];
+
+				$echt = $info["total"];
+
+				echo "\t[$time] $echt $what\n";
+			}
+
+			echo "\n\n";
+
+			exit();
+		}
+	}
+
 	/**
 	* The work loop which will loop forever when called.
 	*
@@ -424,13 +535,23 @@ abstract class Bot
 		$ticks = 0;
 
 		while(1) {
+			$this->profileStart();
+
+			$this->profile("Getting real-time sample", __FILE__, __LINE__);
+
 			// always get the realtime value
 			$this->data->getAssetValueForTime(Time::now());
+
+			$this->profile("Getting sample for running time", __FILE__, __LINE__);
 
 			// get the value we need right now
 			$sample = $this->data->getAssetValueForTime($this->currentTime);
 
+			$this->profileEndTask();
+
 			$hasRun = $this->_process($this->currentTime, $sample);
+
+			$this->profileStop();
 
 			if ($this->currentTime->isNow() || $this->getShouldNotProcess()) {
 				// Sleep for 1 second

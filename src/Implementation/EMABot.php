@@ -158,6 +158,8 @@ class EMABot extends \GalacticBot\Bot
 			exit();
 		}
 		*/
+		
+		$this->profile("Read state and write to buffers", __FILE__, __LINE__);
 
 		$state = $this->data->get("state");
 		$tradeState = $this->data->get("tradeState");
@@ -182,7 +184,7 @@ class EMABot extends \GalacticBot\Bot
 		$this->longTermValue = $this->longTermSamples->getExponentialMovingAverage();
 		$this->data->setT($time, "longTermValue", $this->longTermValue);
 
-		// "Predict" next values and determine the direction of the prediction
+		$this->profile("\"Predict\" next values and determine the direction of the prediction", __FILE__, __LINE__);
 		$this->predict($time);
 
 		$gotFullBuffers = $this->shortTermSamples->getIsBufferFull();
@@ -192,12 +194,16 @@ class EMABot extends \GalacticBot\Bot
 		$gotFullBuffers = $gotFullBuffers && $this->predictionBuffer->getIsBufferFull();
 
 		$startOfBuyDelayDate = $this->data->get("startOfBuyDelayDate") ? \GalacticBot\Time::fromString($this->data->get("startOfBuyDelayDate")) : null;
+		
+		$this->profile("Update trade information", __FILE__, __LINE__);
 
 		$lastTrade = $this->data->getLastTrade();
 
 		$lastCompletedTrade = $this->data->getLastCompletedTrade();
 
 		$this->data->logVerbose("- state = {$state}, tradeState = {$tradeState}");
+
+		$this->profileEndTask();
 
 		if ($gotFullBuffers && $tradeState == self::TRADE_STATE_BUFFERING)
 			$tradeState = self::TRADE_STATE_NONE;
@@ -220,6 +226,8 @@ class EMABot extends \GalacticBot\Bot
 		{
 			if (!$lastTrade || $lastTrade->getIsFilledCompletely())
 			{
+				$this->profile("Retrieve budget", __FILE__, __LINE__);
+
 				$baseAssetAmount = $this->getCurrentBaseAssetBudget();
 				$counterAssetAmountInBase = (1/$sample) * $this->getCurrentCounterAssetBudget();
 
@@ -234,6 +242,8 @@ class EMABot extends \GalacticBot\Bot
 
 				if ($total > 0)
 				{
+					$this->profile("Check budget balance", __FILE__, __LINE__);
+					
 					if ($baseBalancePercentage >= $balanceTippingPointPercentage)
 					{
 						$this->data->logVerbose("Current asset balance is: base {$baseBalancePercentage}% and counter {$counterBalancePercentage}%. We've crossed the tipping point with the base balance. Let's see if we need to change state.");
@@ -266,6 +276,8 @@ class EMABot extends \GalacticBot\Bot
 					}
 				}
 			}
+			
+			$this->profile("Act on trade state and current sample value", __FILE__, __LINE__);
 
 			switch($tradeState)
 			{
@@ -545,13 +557,19 @@ class EMABot extends \GalacticBot\Bot
 						exit("Unhandled tradeState: {$tradeState}");
 					break;
 			}
+
+			$this->profileEndTask();
 		}
+
+		$this->profile("Save state", __FILE__, __LINE__);
 
 		$this->data->set("state", $state);
 		$this->data->set("tradeState", $tradeState);
 		$this->data->set("startOfBuyDelayDate", $startOfBuyDelayDate ? $startOfBuyDelayDate->toString() : null);
 		
 		$this->data->logVerbose("[DONE] - tradeState = {$tradeState}");
+
+		$this->profileEndTask();
 	}
 
 	function predict(\GalacticBot\Time $time)
@@ -580,7 +598,8 @@ class EMABot extends \GalacticBot\Bot
 				
 			$now->add(1);
 			
-			$this->data->setT($now, "prediction", $prediction);
+			// Do not save prediction (is slow when doing simulations or when processing a backbuffer)
+			//$this->data->setT($now, "prediction", $prediction);
 		}
 
 		$this->predictionDirection = \GalacticBot\forecast_direction($mediumTermSamplesArray, $this->predictionBuffer->getArray(), $this->settings->get("prognosisWindowMinutes") * 0.5, $this->settings->get("prognosisWindowMinutes"));
