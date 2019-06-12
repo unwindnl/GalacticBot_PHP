@@ -149,6 +149,59 @@ class EMABot extends \GalacticBot\Bot
 		return $label;
 	}
 
+	protected function checkAssetFlip($sample, &$tradeState)
+	{
+		$lastTrade = $this->data->getLastTrade();
+
+		if (!$lastTrade || $lastTrade->getIsFilledCompletely() || !$lastTrade->isOpen())
+		{
+			$baseAssetAmount = $this->getCurrentBaseAssetBudget();
+			$counterAssetAmountInBase = (1/$sample) * $this->getCurrentCounterAssetBudget();
+
+			// There are no trades, our balance can overide what our state is (trying to buy or sell)
+
+			$total = $baseAssetAmount + $counterAssetAmountInBase;
+
+			$baseBalancePercentage = round(10000 * ($baseAssetAmount / $total)) / 100;
+			$counterBalancePercentage = round(10000 * ($counterAssetAmountInBase / $total)) / 100;
+
+			$balanceTippingPointPercentage = $this->settings->get("balanceTippingPointPercentage");
+	
+			if ($total > 0)
+			{
+				$this->profile("Check budget balance", __FILE__, __LINE__);
+				
+				if ($baseBalancePercentage >= $balanceTippingPointPercentage)
+				{
+					switch($tradeState)
+					{
+						case self::TRADE_STATE_SELL_WAIT:
+						case self::TRADE_STATE_SELL_DELAY:
+						case self::TRADE_STATE_SELL_WAIT_POSITIVE:
+						case self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT:
+						case self::TRADE_STATE_SELL_WAIT_FOR_TRADES:
+								$this->data->logVerbose("Current asset balance is: base {$baseBalancePercentage}% and counter {$counterBalancePercentage}%. We've crossed the tipping point with the base balance. We're flipping our state to be able to buy the counter asset.");
+								$tradeState = self::TRADE_STATE_BUY_DELAY;
+							break;
+					}
+				}
+				else if ($counterBalancePercentage >= $balanceTippingPointPercentage)
+				{
+					switch($tradeState)
+					{
+						case self::TRADE_STATE_DIP_WAIT:
+						case self::TRADE_STATE_BUY_DELAY:
+						case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:
+						case self::TRADE_STATE_BUY_PENDING:
+								$this->data->logVerbose("Current asset balance is: base {$baseBalancePercentage}% and counter {$counterBalancePercentage}%. We've crossed the tipping point with the counter balance. We're flipping our state to be able to buy the base asset.");
+								$tradeState = self::TRADE_STATE_SELL_WAIT;
+							break;
+					}
+				}
+			}
+		}
+	}
+
 	protected function process(\GalacticBot\Time $time, $sample) {
 		/*
 		// Test buy
@@ -224,54 +277,7 @@ class EMABot extends \GalacticBot\Bot
 		}
 		else
 		{
-			if (!$lastTrade || $lastTrade->getIsFilledCompletely())
-			{
-				$this->profile("Retrieve budget", __FILE__, __LINE__);
-
-				$baseAssetAmount = $this->getCurrentBaseAssetBudget();
-				$counterAssetAmountInBase = (1/$sample) * $this->getCurrentCounterAssetBudget();
-
-				// There are no trades, our balance can overide what our state is (trying to buy or sell)
-
-				$total = $baseAssetAmount + $counterAssetAmountInBase;
-
-				$baseBalancePercentage = round(10000 * ($baseAssetAmount / $total)) / 100;
-				$counterBalancePercentage = round(10000 * ($counterAssetAmountInBase / $total)) / 100;
-
-				$balanceTippingPointPercentage = $this->settings->get("balanceTippingPointPercentage");
-
-				if ($total > 0)
-				{
-					$this->profile("Check budget balance", __FILE__, __LINE__);
-					
-					if ($baseBalancePercentage >= $balanceTippingPointPercentage)
-					{
-						switch($tradeState)
-						{
-							case self::TRADE_STATE_SELL_WAIT:
-							case self::TRADE_STATE_SELL_DELAY:
-							case self::TRADE_STATE_SELL_WAIT_POSITIVE:
-							case self::TRADE_STATE_SELL_WAIT_MINIMUM_PROFIT:
-							case self::TRADE_STATE_SELL_WAIT_FOR_TRADES:
-									$this->data->logVerbose("Current asset balance is: base {$baseBalancePercentage}% and counter {$counterBalancePercentage}%. We've crossed the tipping point with the base balance. We're flipping our state to be able to buy the counter asset.");
-									$tradeState = self::TRADE_STATE_BUY_DELAY;
-								break;
-						}
-					}
-					else if ($counterBalancePercentage >= $balanceTippingPointPercentage)
-					{
-						switch($tradeState)
-						{
-							case self::TRADE_STATE_BUY_DELAY:
-							case self::TRADE_STATE_BUY_WAIT_NEGATIVE_TREND:
-							case self::TRADE_STATE_BUY_PENDING:
-									$this->data->logVerbose("Current asset balance is: base {$baseBalancePercentage}% and counter {$counterBalancePercentage}%. We've crossed the tipping point with the counter balance. We're flipping our state to be able to buy the base asset.");
-									$tradeState = self::TRADE_STATE_SELL_WAIT;
-								break;
-						}
-					}
-				}
-			}
+			$this->checkAssetFlip($sample, $tradeState);
 			
 			$this->profile("Act on trade state and current sample value", __FILE__, __LINE__);
 
@@ -368,13 +374,18 @@ class EMABot extends \GalacticBot\Bot
 
 												$this->data->logVerbose("Buy order changed.");
 											}
-											else if ($lastTrade && $lastTrade->isOpen() && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
+											else if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
 											{
-												$this->data->logVerbose("Trade #{$lastTrade->getID()} is too old, lets assume no one is going to fill this and return to our previous state.");
+												if ($lastTrade->isOpen())
+												{
+													$this->data->logVerbose("Trade #{$lastTrade->getID()} is too old, lets assume no one is going to fill this and return to our previous state.");
 
-												$this->cancel($time, $lastTrade);
+													$this->cancel($time, $lastTrade);
+												}
 
 												$tradeState = self::TRADE_STATE_NONE;
+
+												$this->checkAssetFlip($sample, $tradeState);
 											}
 										}
 										else if ($this->buy($time))
@@ -394,6 +405,8 @@ class EMABot extends \GalacticBot\Bot
 											$this->cancel($time, $lastTrade);
 
 											$tradeState = self::TRADE_STATE_NONE;
+
+											$this->checkAssetFlip($sample, $tradeState);
 										}
 										else
 										{
@@ -401,25 +414,35 @@ class EMABot extends \GalacticBot\Bot
 										}
 									}
 								}
-								else if ($lastTrade && $lastTrade->isOpen() && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
+								else if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
 								{
-									$this->data->logVerbose("Trade #{$lastTrade->getID()} is too old, lets assume no one is going to fill this and return to our previous state.");
+									if ($lastTrade->isOpen())
+									{
+										$this->data->logVerbose("Trade #{$lastTrade->getID()} is too old, lets assume no one is going to fill this and return to our previous state.");
 
-									$this->cancel($time, $lastTrade);
+										$this->cancel($time, $lastTrade);
+									}
 
 									$tradeState = self::TRADE_STATE_NONE;
+
+									$this->checkAssetFlip($sample, $tradeState);
 								}
 							}
 						}
 						else if ($tradeState == self::TRADE_STATE_BUY_PENDING)
 						{
-							if ($lastTrade && $lastTrade->isOpen() && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
+							if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
 							{
-								$this->data->logWarning("Trade #{$lastTrade->getID()} is too old, lets assume no one is going to fill this and return to our previous state.");
+								if ($lastTrade->isOpen())
+								{
+									$this->data->logWarning("Trade #{$lastTrade->getID()} is too old, lets assume no one is going to fill this and return to our previous state.");
 
-								$this->cancel($time, $lastTrade);
+									$this->cancel($time, $lastTrade);
+								}
 
 								$tradeState = self::TRADE_STATE_NONE;
+								
+								$this->checkAssetFlip($sample, $tradeState);
 							}
 						}
 						else
