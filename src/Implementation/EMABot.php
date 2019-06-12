@@ -372,9 +372,9 @@ class EMABot extends \GalacticBot\Bot
 
 												$this->data->logVerbose("Buy order changed.");
 											}
-											else if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
+											else if ($lastTrade && $lastTrade->isOpen() && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
 											{
-												$this->data->logVerbose("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
+												$this->data->logVerbose("Trade #{$lastTrade->getID()} is too old, lets assume no one is going to fill this and return to our previous state.");
 
 												$this->cancel($time, $lastTrade);
 
@@ -387,13 +387,13 @@ class EMABot extends \GalacticBot\Bot
 										}
 										else
 										{
-											$this->data->logWarning("Trade failed to create (this also happens when a bot is paused).");
+											$this->data->logWarning("Trade #{$lastTrade->getID()} failed to create (this also happens when a bot is paused).");
 											$tradeState = self::TRADE_STATE_DIP_WAIT;
 										}
 									} else /* negative trend: $this->predictionDirection < 0 */ {
 										if ($tradeState == self::TRADE_STATE_BUY_PENDING)
 										{
-											$this->data->logVerbose("Cancel trade, we're in a negative trend now.");
+											$this->data->logVerbose("Cancel trade #{$lastTrade->getID()}, we're in a negative trend now.");
 
 											$this->cancel($time, $lastTrade);
 
@@ -405,9 +405,9 @@ class EMABot extends \GalacticBot\Bot
 										}
 									}
 								}
-								else if ($lastTrade && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
+								else if ($lastTrade && $lastTrade->isOpen() && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
 								{
-									$this->data->logVerbose("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
+									$this->data->logVerbose("Trade #{$lastTrade->getID()} is too old, lets assume no one is going to fill this and return to our previous state.");
 
 									$this->cancel($time, $lastTrade);
 
@@ -417,9 +417,9 @@ class EMABot extends \GalacticBot\Bot
 						}
 						else if ($tradeState == self::TRADE_STATE_BUY_PENDING)
 						{
-							if ($lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
+							if ($lastTrade && $lastTrade->isOpen() && $lastTrade->getAgeInMinutes($time) > $this->settings->get("buyFillWaitMinutes"))
 							{
-								$this->data->logWarning("Trade is too old, lets assume no one is going to fill this and return to our previous state.");
+								$this->data->logWarning("Trade #{$lastTrade->getID()} is too old, lets assume no one is going to fill this and return to our previous state.");
 
 								$this->cancel($time, $lastTrade);
 

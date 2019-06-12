@@ -30,6 +30,11 @@ class Trade
 	{
 	}
 
+	function isOpen()
+	{
+		return $this->state == self::STATE_CREATED;
+	}
+
 	function setData(Array $data)
 	{
 		$vars = get_object_vars($this);
