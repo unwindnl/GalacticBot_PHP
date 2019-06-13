@@ -211,7 +211,7 @@ class EMABot extends \GalacticBot\Bot
 			exit();
 		}
 		*/
-		
+
 		$this->profile("Read state and write to buffers", __FILE__, __LINE__);
 
 		$state = $this->data->get("state");
@@ -394,7 +394,7 @@ class EMABot extends \GalacticBot\Bot
 										}
 										else
 										{
-											$this->data->logWarning("Trade #{$lastTrade->getID()} failed to create (this also happens when a bot is paused).");
+											$this->data->logWarning("Trade failed to create (this also happens when a bot is paused).");
 											$tradeState = self::TRADE_STATE_DIP_WAIT;
 										}
 									} else /* negative trend: $this->predictionDirection < 0 */ {

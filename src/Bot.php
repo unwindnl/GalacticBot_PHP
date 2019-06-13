@@ -1127,11 +1127,9 @@ abstract class Bot
 	
 		if ($price === null) {
 			$this->data->logVerbose("Manage offer called with zero price. Fetching the current price by ourselfs.");
+
 			$price = $this->getDataInterface()->getAssetValueForTime($time);
 		}
-
-		if (!$this->baseAssetIsNative())
-			$price = 1/$price;
 
 		if ((float)$price <= 0) {
 			$this->data->logError("Manage offer failed, price is (still) zero.");
@@ -1142,6 +1140,19 @@ abstract class Bot
 			$this->data->logError("Manage offer failed, selling amount is zero.");
 			return false;
 		}
+
+		$sellingIsCounterAsset = false;
+
+		if ($sellingAsset->getCode() == $this->settings->getCounterAsset()->getCode() && $sellingAsset->getIssuer()->getPublicKey() == $this->settings->getCounterAsset()->getIssuer())
+		{
+			$sellingIsCounterAsset = true;
+		}
+
+		if ($sellingIsCounterAsset)
+			$price = 1/$price;
+
+	//	var_dump("price = ", $price, ", sellingIsCounterAsset = ", $sellingIsCounterAsset);
+	//	exit();
 
 		$buyingAmount = $price * $sellingAmount;
 
