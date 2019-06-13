@@ -1148,7 +1148,7 @@ abstract class Bot
 			$sellingIsCounterAsset = true;
 		}
 
-		if ($sellingIsCounterAsset)
+		if (!$sellingIsCounterAsset)
 			$price = 1/$price;
 
 	//	var_dump("price = ", $price, ", sellingIsCounterAsset = ", $sellingIsCounterAsset);
