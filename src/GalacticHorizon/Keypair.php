@@ -41,20 +41,18 @@ class Keypair
      */
     private $publicKey;
 
-     public static function createRandom() {
-        return self::newFromRawSeed(random_bytes(32));
-    }
+	public static function createRandom() {
+		return self::createFromRawSeed(random_bytes(32));
+	}
 
 	public static function createFromSecretKey($base32String) {
-        return new Keypair($base32String);
-    }
+		return new Keypair($base32String);
+	}
 
-/*
-    private static function forRawSeed($rawSeed) {
+    private static function createFromRawSeed($rawSeed) {
         $seedString = AddressableKey::seedFromRawBytes($rawSeed);
         return new Keypair($seedString);
     }
-*/
 
     public static function createFromPublicKey($base32String) {
         $keypair = new Keypair();
@@ -129,13 +127,13 @@ class Keypair
         return array_shift($unpacked);
     }
 
-	 /*
-     public function getSecret() {
-        $this->requirePrivateKey();
+	public function getSecret() {
+		$this->requirePrivateKey();
 
-        return $this->seed;
-    }
+		return $this->seed;
+	}
 
+	/*
     public function getPrivateKeyBytes()
     {
         $this->requirePrivateKey();
@@ -166,18 +164,18 @@ class Keypair
 				$e
 			);
 		}
-    }
+	}
 
-protected function getEd25519SecretKey() {
-	$this->requirePrivateKey();
+	protected function getEd25519SecretKey() {
+		$this->requirePrivateKey();
 
-	$pk = '';
-	$sk = '';
+		$pk = '';
+		$sk = '';
 
-	Ed25519::seed_keypair($pk, $sk, $this->privateKey);
+		Ed25519::seed_keypair($pk, $sk, $this->privateKey);
 
-	return $sk;
-}
+		return $sk;
+	}
 
 }
 

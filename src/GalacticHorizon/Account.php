@@ -108,10 +108,12 @@ public function getPublicKey() {
 }
 
 public function fetch() {
+	$result = false;
+
 	Client::getInstance()->get(
 		sprintf("accounts/%s", $this->keypair->getPublicKey()),
 		[],
-		function($data) {
+		function($data) use (&$result) {
 			$this->sequence = new BigInteger($data->sequence);
 			$this->balances = [];
 			
@@ -134,10 +136,12 @@ public function fetch() {
 			} else {
 				$this->thresholds = null;
 			}
+
+			$result = true;
 		}
 	);
 
-	return true;
+	return $result;
 }
 
 public function getNextSequenceNumber() {

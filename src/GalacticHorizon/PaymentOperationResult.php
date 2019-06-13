@@ -21,7 +21,7 @@ private $code = null;
 
 public static function fromXDRBuffer(XDRBuffer &$buffer) {
 	$result = new self();
-	$result->errorCode = $buffer->readUnsignedInteger();
+	$result->errorCode = $buffer->readInteger();
 	return $result;
 }
 

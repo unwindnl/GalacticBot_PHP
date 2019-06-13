@@ -42,6 +42,9 @@ include_once "TransactionResult.php";
 include_once "Operation.php";
 include_once "OperationResult.php";
 
+include_once "CreateAccountOperation.php";
+include_once "CreateAccountOperationResult.php";
+
 include_once "PaymentOperation.php";
 include_once "PaymentOperationResult.php";
 

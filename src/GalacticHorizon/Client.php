@@ -71,6 +71,8 @@ public function post($URL, Array $data, callable $callback) {
 }
 
 public function request($type, $URL, Array $data, callable $callback) {
+	$result = false;
+	
 	try {
 		$response = $this->httpClient->request(
 			$type,
@@ -84,6 +86,8 @@ public function request($type, $URL, Array $data, callable $callback) {
 			$body = (string)$response->getBody();
 
 			$callback(json_decode($body));
+
+			$result = true;
 		}
 	} catch(\GuzzleHttp\Exception\ServerException $e) {
 		throw \GalacticHorizon\Exception::create(
@@ -92,12 +96,20 @@ public function request($type, $URL, Array $data, callable $callback) {
 			$e
 		);
 	} catch(\GuzzleHttp\Exception\ClientException $e) {
-		throw \GalacticHorizon\Exception::create(
-			\GalacticHorizon\Exception::TYPE_REQUEST_ERROR,
-			null,
-			$e
-		);
+		if ($e->getResponse()->getStatusCode() == 404)
+		{
+		}
+		else
+		{
+			throw \GalacticHorizon\Exception::create(
+				\GalacticHorizon\Exception::TYPE_REQUEST_ERROR,
+				null,
+				$e
+			);
+		}
 	}
+
+	return $result;
 }
 
 public function callback($curl, $inData)
