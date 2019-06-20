@@ -7,7 +7,7 @@ abstract class Operation implements XDRInputInterface, XDROutputInterface {
 const TYPE_CREATE_ACCOUNT       = 0;
 const TYPE_PAYMENT              = 1;
 const TYPE_PATH_PAYMENT         = 2;
-const TYPE_MANAGE_OFFER         = 3;
+const TYPE_MANAGE_SELL_OFFER    = 3;
 const TYPE_CREATE_PASSIVE_OFFER = 4;
 const TYPE_SET_OPTIONS          = 5;
 const TYPE_CHANGE_TRUST         = 6;
@@ -16,6 +16,7 @@ const TYPE_ACCOUNT_MERGE        = 8;
 const TYPE_INFLATION            = 9;
 const TYPE_MANAGE_DATA          = 10;
 const TYPE_BUMP_SEQUENCE        = 11;
+const TYPE_MANAGE_BUY_OFFER     = 12;
 
 private $sourceAccount = null;
 
@@ -50,7 +51,7 @@ public function getTypeName() {
 		case self::TYPE_CREATE_ACCOUNT:				return "TYPE_CREATE_ACCOUNT";
 		case self::TYPE_PAYMENT:					return "TYPE_PAYMENT";
 		case self::TYPE_PATH_PAYMENT:				return "TYPE_PATH_PAYMENT";
-		case self::TYPE_MANAGE_OFFER:				return "TYPE_MANAGE_OFFER";
+		case self::TYPE_MANAGE_SELL_OFFER:			return "TYPE_MANAGE_SELL_OFFER";
 		case self::TYPE_CREATE_PASSIVE_OFFER:		return "TYPE_CREATE_PASSIVE_OFFER";
 		case self::TYPE_SET_OPTIONS:				return "TYPE_SET_OPTIONS";
 		case self::TYPE_CHANGE_TRUST:				return "TYPE_CHANGE_TRUST";
@@ -59,6 +60,7 @@ public function getTypeName() {
 		case self::TYPE_INFLATION:					return "TYPE_INFLATION";
 		case self::TYPE_MANAGE_DATA:				return "TYPE_MANAGE_DATA";
 		case self::TYPE_BUMP_SEQUENCE:				return "TYPE_BUMP_SEQUENCE";
+		case self::TYPE_MANAGE_BUY_OFFER:			return "TYPE_MANAGE_BUY_OFFER";
 	}
 
 	return "Unknown (" . $this->getType() . ")";
@@ -92,9 +94,10 @@ public static function fromXDRBuffer(XDRBuffer &$buffer) {
 
 	switch($type) {
 		case self::TYPE_PAYMENT:			$operation = PaymentOperation::fromXDRBuffer($buffer); break;
-		case self::TYPE_MANAGE_OFFER:		$operation = ManageOfferOperation::fromXDRBuffer($buffer); break;
+		case self::TYPE_MANAGE_SELL_OFFER:	$operation = ManageOfferOperation::fromXDRBuffer($buffer); break;
 		case self::TYPE_ALLOW_TRUST:		$operation = AllowTrustOperation::fromXDRBuffer($buffer); break;
 		case self::TYPE_CHANGE_TRUST:		$operation = ChangeTrustOperation::fromXDRBuffer($buffer); break;
+		case self::TYPE_MANAGE_BUY_OFFER:	$operation = ManageOfferOperation::fromXDRBuffer($buffer); break;
 
 		default:
 			throw \GalacticHorizon\Exception::create(

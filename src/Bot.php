@@ -351,56 +351,95 @@ abstract class Bot
 			
 		if ($account->fetch()) {
 			$cursor = $this->data->get("last-trades-update-cursor", "now");
+
+		/*
+		echo "****** TEMP DEBUG *****\n\n";
+		$cursor = "104881151453212673-0";
+		$openBotOffer = $this->data->getLastTrade();
+		$openBotOffer->clearClaimedOffers();
+		$this->getDataInterface()->saveTrade($openBotOffer);
+		*/
 		
 			$bot = $this;
-			
+
 			$account->getTradesStreaming(
 				$cursor,
 				function($ID, $trade) use ($bot) {
 					$this->data->set("last-trades-update-cursor", $ID);
 					$this->data->save();
 
-					$lastTrade = $this->data->getLastTrade();
+					$openBotOffer = $this->data->getLastTrade();
 
-					if ($lastTrade) {
-						$lastTradeDate = clone $lastTrade->getCreatedAt();
-						$lastTradeDate->modify("-1 minute");
+					if ($openBotOffer) {
+						$openBotOfferDate = clone $openBotOffer->getCreatedAt();
+						$openBotOfferDate->modify("-1 minute");
 
-						if ($trade->getLedgerCloseTime() >= $lastTradeDate) {
-							$isBuy = $lastTrade->getType() == \GalacticBot\Trade::TYPE_BUY;
-							$isSell = !$isBuy;
+						if ($trade->getLedgerCloseTime() >= $openBotOfferDate) {
+						//	var_dump("openBotOffer = ", $openBotOffer, "getCounterAsset = ", $this->settings->getCounterAsset()->getCode(), "getBaseAsset = ", $this->settings->getBaseAsset()->getCode());
+
+							$isBuy = $openBotOffer->getType() == \GalacticBot\Trade::TYPE_BUY;
 
 							$lastTradeBuyingAssetCode = $isBuy ? $this->settings->getCounterAsset()->getCode() : $this->settings->getBaseAsset()->getCode();
 
+							$trade_sellingAssset = null;
+							$trade_sellingAsssetType = null;
+							$trade_buyingAsset = null;
+							$trade_buyingAssetType = null;
+
 							if ($trade->getBaseIsSeller())
 							{
-								if ($trade->getBaseAccount() == $this->getSettings()->getAccountPublicKey())
-								{
-									$buyingAssetCode = $trade->getCounterAsset()->getCode();
-									$buyingAssetType = $trade->getCounterAsset()->getType();
-								}
-								else
-								{
-									$buyingAssetCode = $trade->getBaseAsset()->getCode();
-									$buyingAssetType = $trade->getBaseAsset()->getType();
-								}
+								$trade_sellingAssset = $trade->getBaseAsset()->getCode();
+								$trade_sellingAsssetType = $trade->getBaseAsset()->getType();
+
+								$trade_buyingAsset = $trade->getCounterAsset()->getCode();
+								$trade_buyingAssetType = $trade->getCounterAsset()->getType();
 							}
 							else
 							{
-								if ($trade->getBaseAccount() == $this->getSettings()->getAccountPublicKey())
-								{
-									$buyingAssetCode = $trade->getBaseAsset()->getCode();
-									$buyingAssetType = $trade->getBaseAsset()->getType();
-								}
-								else
-								{
-									$buyingAssetCode = $trade->getCounterAsset()->getCode();
-									$buyingAssetType = $trade->getCounterAsset()->getType();
-								}
+								$trade_sellingAssset = $trade->getCounterAsset()->getCode();
+								$trade_sellingAsssetType = $trade->getCounterAsset()->getType();
+
+								$trade_buyingAsset = $trade->getBaseAsset()->getCode();
+								$trade_buyingAssetType = $trade->getBaseAsset()->getType();
 							}
 
-							if ($buyingAssetCode == $lastTradeBuyingAssetCode) {
-								$lastTrade->addCompletedHorizonTradeForBot($trade, $bot);
+							$botOffer_sellingAssset = null;
+							$botOffer_sellingAsssetType = null;
+							$botOffer_buyingAsset = null;
+							$botOffer_buyingAssetType = null;
+
+							if ($openBotOffer->getType() == \GalacticBot\Trade::TYPE_BUY)
+							{
+								$botOffer_buyingAsset = $this->settings->getCounterAsset()->getCode();
+								$botOffer_buyingAssetType = $this->settings->getCounterAsset()->getType();
+
+								$botOffer_sellingAssset = $this->settings->getBaseAsset()->getCode();
+								$botOffer_sellingAsssetType = $this->settings->getBaseAsset()->getType();
+							}
+							else
+							{
+								$botOffer_buyingAsset = $this->settings->getBaseAsset()->getCode();
+								$botOffer_buyingAssetType = $this->settings->getBaseAsset()->getType();
+
+								$botOffer_sellingAssset = $this->settings->getCounterAsset()->getCode();
+								$botOffer_sellingAsssetType = $this->settings->getCounterAsset()->getType();
+							}
+
+							if (
+								$trade_sellingAssset		== $botOffer_sellingAssset
+							&&	$trade_sellingAsssetType	== $botOffer_sellingAsssetType
+							&&	$trade_buyingAsset			== $botOffer_buyingAsset
+							&&	$trade_buyingAssetType		== $botOffer_buyingAssetType
+							) {
+								$openBotOffer->addCompletedHorizonTradeForBot($trade, $bot);
+							}
+							else if (
+								$trade_sellingAssset		== $botOffer_buyingAsset
+							&&	$trade_sellingAsssetType	== $botOffer_buyingAssetType
+							&&	$trade_buyingAsset			== $botOffer_sellingAssset
+							&&	$trade_buyingAssetType		== $botOffer_sellingAsssetType
+							) {
+								$openBotOffer->addCompletedHorizonTradeForBot($trade, $bot);
 							}
 						}
 					}
@@ -651,6 +690,8 @@ abstract class Bot
 		}
 
 		$this->data->logVerbose("Processing timeframe (" . $time->toString() . ")");
+		
+		$this->getDataInterface()->logVerbose("1 " . $this->settings->getBaseAsset()->getCode() . " is now {$sample} " . $this->settings->getCounterAsset()->getCode());
 		
 		if ($lastTrade && !$lastTrade->getIsFilledCompletely())
 			$this->getDataInterface()->logVerbose("Trade #" . $lastTrade->getID() . " is not fulfilled yet (fill: " . $lastTrade->getFillPercentage() . "%).");
@@ -970,6 +1011,7 @@ abstract class Bot
 	*
 	* @return Trade or null
 	*/
+	/*
 	function buy(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false, $price = null)
 	{
 		if (!$this->shouldTrade && !$cancelOffer) // But allow to cancel an order
@@ -1025,6 +1067,7 @@ abstract class Bot
 
 		return $trade;
 	}
+	*/
 
 	/**
 	* Cancels any open Trade (buy or sell).
@@ -1040,9 +1083,9 @@ abstract class Bot
 		if ($this->getSettings()->getType() == self::SETTING_TYPE_LIVE)
 		{
 			if ($trade->getType() == Trade::TYPE_SELL)
-				$this->sell($processingTime, $trade, true);
+				$this->sell($processingTime, $trade, true, 0);
 			else
-				$this->buy($processingTime, $trade, true);
+				$this->buy($processingTime, $trade, true, 0);
 		}
 		
 		if ($newState === null)
@@ -1053,126 +1096,44 @@ abstract class Bot
 	}
 
 	/**
-	* Tries to trade the counter asset for the base asset at the current price.
+	* Tries to trade the base asset for the counter asset at a givven price
 	*
 	* @return Trade or null
 	*/
-	function sell(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false, $price = null)
+	function buy(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false, $price)
 	{
-		if (!$this->shouldTrade && !$cancelOffer) // But allow to cancel an order
-			return null;
-
-		if ($cancelOffer)
-			$price = $updateExistingTrade->getPrice();
-
-		$budget = $this->getCurrentCounterAssetBudget(true);
-		$fromAsset = $this->settings->getCounterAsset();
-		$toAsset = $this->settings->getBaseAsset();
+		$sellingAsset = $this->settings->getBaseAsset();
+		$buyingAsset = $this->settings->getCounterAsset();
 		
-		$offerIDToUpdate = $updateExistingTrade ? $updateExistingTrade->getOfferID() : null;
+		$budget = $this->getCurrentBaseAssetBudget(true);
+		$sellAmount = \GalacticHorizon\Amount::createFromFloat($budget);
 
-		if ($this->getSettings()->getType() == self::SETTING_TYPE_SIMULATION)
-		{
-			$trade = new Trade();
-			$trade->simulate(Trade::TYPE_SELL, $this, $processingTime, $fromAsset, $budget, $toAsset);
-		}
-		else
-		{
-			// make sure to get the latest account info (and thus sequence number)
-			$this->getAccountInfo();
-
-			$trade = $this->manageOffer(false, $processingTime, $fromAsset, $budget, $toAsset, $offerIDToUpdate, $cancelOffer, $price);
-		}
-
-		if ($cancelOffer)
-		{
-			return $trade;
-		}
-
-		if (!$trade)
+		if (!$cancelOffer && $sellAmount->toFloat() <= 0) {
+			$this->data->logError("Manage buy offer failed, buying amount is zero.");
 			return false;
-
-		if ($updateExistingTrade)
-		{
-			$updateExistingTrade->setState(Trade::STATE_REPLACED);
-			$this->data->saveTrade($updateExistingTrade);
-
-			$trade->setPreviousBotTradeID($updateExistingTrade->getPreviousBotTradeID());
-		}
-		else
-		{
-			$lastTrade = $this->data->getLastTrade();
-
-			if ($lastTrade)
-				$trade->setPreviousBotTradeID($lastTrade->getID());
 		}
 
-		$trade->setProcessedAt($processingTime->getDateTime());
-
-		$this->data->addTrade($trade);
-
-		return $trade;
-	}
-
-	private function manageOffer($isBuyOffer, Time $time, \GalacticHorizon\Asset $sellingAsset, $sellingAmount, \GalacticHorizon\Asset $buyingAsset, $offerIDToUpdate = null, $cancelOffer = false, $price = null)
-	{
-		global $_BASETIMEZONE;
-		
-		// reset last trade update time
-		$now = \GalacticBot\Time::now();
-		$this->data->set("lastTradeUpdateTime", $now->toString());
-		$this->data->set("lastTradeUpdateID", null);
-		
-		$this->data->logVerbose("Manage offer called; isBuyOffer = " . ($isBuyOffer ? "true" : "false") . ", sellingAsset = " . $sellingAsset . ", sellingAmount = " . $sellingAmount . ", buyingAsset = " . $buyingAsset . ", offerIDToUpdate = " . $offerIDToUpdate . ", cancelOffer = " . ($cancelOffer ? "true" : "false") . ", price = " . ($price === null ? "null" : $price));
+		if (!$cancelOffer && (float)$price <= 0)
+		{
+			$this->data->logError("Manage buy offer failed, price is zero.");
+			return false;
+		}
 	
-		if ($price === null) {
-			$this->data->logVerbose("Manage offer called with zero price. Fetching the current price by ourselfs.");
+		/*
+		var_dump("budget = " . $budget);
+		var_dump("price = " . $price);
+		var_dump("sellingAsset = " . $sellingAsset->getCode());
+		var_dump("sellAmount = " . $sellAmount->toFloat());
+		var_dump("buyingAsset = " . $buyingAsset->getCode());
+		exit();
+		*/
 
-			$price = $this->getDataInterface()->getAssetValueForTime($time);
-		}
-
-		if ((float)$price <= 0) {
-			$this->data->logError("Manage offer failed, price is (still) zero.");
-			return false;
-		}
-
-		if ((float)$sellingAmount <= 0) {
-			$this->data->logError("Manage offer failed, selling amount is zero.");
-			return false;
-		}
-
-		$sellingIsCounterAsset = false;
-
-		if ($sellingAsset->getCode() == $this->settings->getCounterAsset()->getCode() && $sellingAsset->getIssuer()->getPublicKey() == $this->settings->getCounterAsset()->getIssuer())
-		{
-			$sellingIsCounterAsset = true;
-		}
-
-		if (!$sellingIsCounterAsset)
-			$price = 1/$price;
-
-	//	var_dump("price = ", $price, ", sellingIsCounterAsset = ", $sellingIsCounterAsset);
-	//	exit();
-
-		$buyingAmount = $price * $sellingAmount;
-
-		if ($isBuyOffer)
-			$price = \GalacticHorizon\Price::createFromFloat($buyingAmount / $sellingAmount);
-		else
-			$price = \GalacticHorizon\Price::createFromFloat($sellingAmount / $buyingAmount);
-
-		$buyingAmount = (float)number_format($buyingAmount, 7, '.', '');
-		$sellingAmount = (float)number_format($sellingAmount, 7, '.', '');
-
-		$buyingAmount = \GalacticHorizon\Amount::createFromFloat($buyingAmount);
-		$sellingAmount = \GalacticHorizon\Amount::createFromFloat($sellingAmount);
-
-		$manageOffer = new \GalacticHorizon\ManageOfferOperation();
+		$manageOffer = new \GalacticHorizon\ManageSellOfferOperation();
 		$manageOffer->setSellingAsset($sellingAsset);
 		$manageOffer->setBuyingAsset($buyingAsset);
-		$manageOffer->setAmount($cancelOffer ? \GalacticHorizon\Amount::createFromFloat(0) : $sellingAmount);
-		$manageOffer->setPrice($price);
-		$manageOffer->setOfferID($offerIDToUpdate ? $offerIDToUpdate : null);
+		$manageOffer->setSellAmount($cancelOffer ? \GalacticHorizon\Amount::createFromFloat(0) : $sellAmount);
+		$manageOffer->setPrice(\GalacticHorizon\Price::createFromFloat($price));
+		$manageOffer->setOfferID($updateExistingTrade ? $updateExistingTrade->getOfferID() : null);
 
 		try {
 			$transaction = new \GalacticHorizon\Transaction($this->settings->getAccountKeypair());
@@ -1182,7 +1143,7 @@ abstract class Bot
 			$buffer = new \GalacticHorizon\XDRBuffer();
 			$transaction->toXDRBuffer($buffer);
 
-			$automaticlyFixTrustLineWithAmount = \GalacticHorizon\Amount::createFromFloat(200);
+			$automaticlyFixTrustLineWithAmount = \GalacticHorizon\Amount::createFromFloat(2000000);
 
 			$transactionResult = $transaction->submit($automaticlyFixTrustLineWithAmount);
 
@@ -1193,6 +1154,7 @@ abstract class Bot
 
 				$trade = Trade::fromGalacticHorizonOperationResponseAndResultForBot(
 					$manageOffer,
+					Trade::TYPE_BUY,
 					$transactionResult,
 					$transactionResult->getResult(0),
 					$buffer->toBase64String(),
@@ -1200,20 +1162,125 @@ abstract class Bot
 					$this
 				);
 
+				$lastTrade = $this->data->getLastTrade();
+
+				if ($lastTrade)
+					$trade->setPreviousBotTradeID($lastTrade->getID());
+
+				$trade->setProcessedAt($processingTime->getDateTime());
+
+				$this->data->addTrade($trade);
+
 				return $trade;
 			} else {
-				$this->getDataInterface()->logError("Manage offer operation failed, error code = " . $transactionResult->getErrorCode());
+				$this->getDataInterface()->logError("Manage buy offer operation failed, error code = " . $transactionResult->getErrorCode());
 
 				if ($transactionResult->getResultCount() > 0) {
-					$this->getDataInterface()->logError("Manage offer result, error code = " . $transactionResult->getResult(0)->getErrorCode());
+					$this->getDataInterface()->logError("Manage buy offer result, error code = " . $transactionResult->getResult(0)->getErrorCode());
 				}
 
 				$this->getDataInterface()->logError("Transaction envelope = " . $buffer->toBase64String());
 			}
 		} catch (\GalacticHorizon\Exception $e) {
-			$this->getDataInterface()->logError("Manage offer operation failed, exception = " . (string)$e);
+			$this->getDataInterface()->logError("Manage buy offer operation failed, exception = " . (string)$e);
 			$this->getDataInterface()->logError("Response = " . $e->getHttpResponseBody());
+		}	
+
+		return false;
+	}
+
+	/**
+	* Tries to trade the counter asset for the base asset at a givven price
+	*
+	* @return Trade or null
+	*/
+	function sell(Time $processingTime, Trade $updateExistingTrade = null, $cancelOffer = false, $price)
+	{
+		$sellingAsset = $this->settings->getCounterAsset();
+		$buyingAsset = $this->settings->getBaseAsset();
+
+		$budget = $this->getCurrentCounterAssetBudget(true);
+		$sellAmount = \GalacticHorizon\Amount::createFromFloat($budget);
+
+		if (!$cancelOffer && $sellAmount->toFloat() <= 0) {
+			$this->data->logError("Manage sell offer failed, selling amount is zero.");
+			return false;
 		}
+
+		if (!$cancelOffer && (float)$price <= 0) {
+			$this->data->logError("Manage sell offer failed, price is zero.");
+			return false;
+		}
+
+		if ($price > 0)
+			$price = number_format(1/$price, 7, '.', '');
+
+		/*
+		var_dump("budget = ", $budget);
+		//var_dump("sellingAsset = ", $sellingAsset);
+		//var_dump("buyingAsset = ", $buyingAsset);
+		var_dump("price = ", $price);
+		var_dump("sellAmount = ", $sellAmount->toFloat());
+		exit();
+		*/
+
+		$manageOffer = new \GalacticHorizon\ManageSellOfferOperation();
+		$manageOffer->setSellingAsset($sellingAsset);
+		$manageOffer->setBuyingAsset($buyingAsset);
+		$manageOffer->setSellAmount($cancelOffer ? \GalacticHorizon\Amount::createFromFloat(0) : $sellAmount);
+		$manageOffer->setPrice(\GalacticHorizon\Price::createFromFloat($price));
+		$manageOffer->setOfferID($updateExistingTrade ? $updateExistingTrade->getOfferID() : null);
+
+		try {
+			$transaction = new \GalacticHorizon\Transaction($this->settings->getAccountKeypair());
+			$transaction->addOperation($manageOffer);
+			$transaction->sign([$this->settings->getAccountKeypair()]);
+			
+			$buffer = new \GalacticHorizon\XDRBuffer();
+			$transaction->toXDRBuffer($buffer);
+
+			$automaticlyFixTrustLineWithAmount = \GalacticHorizon\Amount::createFromFloat(2000000);
+
+			$transactionResult = $transaction->submit($automaticlyFixTrustLineWithAmount);
+
+			if ($transactionResult->getErrorCode() == \GalacticHorizon\TransactionResult::TX_SUCCESS) {
+				// Return when an offer is cancelled
+				if ($cancelOffer)
+					return true;
+
+				$trade = Trade::fromGalacticHorizonOperationResponseAndResultForBot(
+					$manageOffer,
+					Trade::TYPE_SELL,
+					$transactionResult,
+					$transactionResult->getResult(0),
+					$buffer->toBase64String(),
+					$transactionResult->getFeeCharged()->toString(),
+					$this
+				);
+
+				$lastTrade = $this->data->getLastTrade();
+
+				if ($lastTrade)
+					$trade->setPreviousBotTradeID($lastTrade->getID());
+
+				$trade->setProcessedAt($processingTime->getDateTime());
+
+				$this->data->addTrade($trade);
+
+				return $trade;
+			} else {
+				$this->getDataInterface()->logError("Manage buy offer operation failed, error code = " . $transactionResult->getErrorCode());
+
+				if ($transactionResult->getResultCount() > 0) {
+					$this->getDataInterface()->logError("Manage buy offer result, error code = " . $transactionResult->getResult(0)->getErrorCode());
+				}
+
+				$this->getDataInterface()->logError("Transaction envelope = " . $buffer->toBase64String());
+			}
+		} catch (\GalacticHorizon\Exception $e) {
+			$this->getDataInterface()->logError("Manage buy offer operation failed, exception = " . (string)$e);
+			$this->getDataInterface()->logError("Response = " . $e->getHttpResponseBody());
+		}	
 
 		return false;
 	}

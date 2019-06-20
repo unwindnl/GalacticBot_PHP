@@ -19,7 +19,8 @@ public static function fromXDRBuffer(XDRBuffer &$buffer) {
 	switch($type) {
 		case Operation::TYPE_CREATE_ACCOUNT:			return CreateAccountOperationResult::fromXDRBuffer($buffer); break;
 		case Operation::TYPE_PAYMENT:					return PaymentOperationResult::fromXDRBuffer($buffer); break;
-		case Operation::TYPE_MANAGE_OFFER:				return ManageOfferOperationResult::fromXDRBuffer($buffer); break;
+		case Operation::TYPE_MANAGE_BUY_OFFER:			return ManageOfferOperationResult::fromXDRBuffer($buffer); break;
+		case Operation::TYPE_MANAGE_SELL_OFFER:			return ManageOfferOperationResult::fromXDRBuffer($buffer); break;
 		case Operation::TYPE_ALLOW_TRUST:				return AllowTrustOperationResult::fromXDRBuffer($buffer); break;
 		case Operation::TYPE_CHANGE_TRUST:				return ChangeTrustOperationResult::fromXDRBuffer($buffer); break;
 

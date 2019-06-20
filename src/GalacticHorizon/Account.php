@@ -331,6 +331,7 @@ public function getCounterOfferID() { return $this->counterOfferID; }
 public function getLedgerCloseTime() { return $this->ledgerCloseTime; }
 
 public function getBaseAccount() { return $this->baseAccount; }
+public function getBaseAmount() { return $this->baseAmount; }
 public function getBaseAsset() { return $this->baseAsset; }
 public function getBaseIsSeller() { return $this->baseIsSeller; }
 

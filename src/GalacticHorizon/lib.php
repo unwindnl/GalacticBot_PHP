@@ -48,7 +48,8 @@ include_once "CreateAccountOperationResult.php";
 include_once "PaymentOperation.php";
 include_once "PaymentOperationResult.php";
 
-include_once "ManageOfferOperation.php";
+include_once "ManageSellOfferOperation.php";
+include_once "ManageBuyOfferOperation.php";
 include_once "OfferEntry.php";
 include_once "ManageOfferOperationResult.php";
 

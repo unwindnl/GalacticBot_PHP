@@ -265,7 +265,17 @@ class EMABot extends \GalacticBot\Bot
 		if ($tradeState == self::TRADE_STATE_SELL_WAIT_FOR_TRADES && $lastTrade->getIsFilledCompletely())
 			$tradeState = self::TRADE_STATE_DIP_WAIT;
 
-		if (!$gotFullBuffers)
+		if (false) // debug
+		{
+			if (!$lastTrade || $lastTrade->getIsFilledCompletely() || $lastTrade->getState() == \GalacticBot\Trade::STATE_CANCELLED)
+			{
+				$result = $this->buy($time, null, null, $sample);
+				//$result = $this->sell($time, null, null, $sample);
+
+				var_dump("result = ", $result);
+			}
+		}
+		else if (!$gotFullBuffers)
 		{
 			$tradeState = self::TRADE_STATE_BUFFERING;
 		}
@@ -368,7 +378,7 @@ class EMABot extends \GalacticBot\Bot
 
 											if ($priceChanged)
 											{
-												$this->buy($time, $lastTrade, null, 1/$sample);
+												$this->buy($time, $lastTrade, null, $sample);
 
 												$tradeState = self::TRADE_STATE_BUY_PENDING;
 
@@ -388,7 +398,7 @@ class EMABot extends \GalacticBot\Bot
 												$this->checkAssetFlip($sample, $tradeState);
 											}
 										}
-										else if ($this->buy($time))
+										else if ($this->buy($time, null, null, $sample))
 										{
 											$tradeState = self::TRADE_STATE_BUY_PENDING;
 										}
@@ -490,12 +500,8 @@ class EMABot extends \GalacticBot\Bot
 								$tradeState == self::TRADE_STATE_SELL_WAIT_FOR_TRADES
 							)
 							{
-								if ($lastTrade->getType() == \GalacticBot\Trade::TYPE_SELL)
-									$lastOrderPrice = number_format(1/$lastTrade->getPrice(), 7);
-								else
-									$lastOrderPrice = number_format($lastTrade->getPrice(), 7);
-
-								$currentPrice = number_format(1/$sample, 7);
+								$lastOrderPrice = number_format($lastTrade->getPrice(), 7, '.', '');
+								$currentPrice = number_format($sample, 7, '.', '');
 								
 								$priceChanged = $lastOrderPrice != $currentPrice;
 
@@ -507,7 +513,7 @@ class EMABot extends \GalacticBot\Bot
 									{
 										$this->data->logWarning("Not selling based on old data (live mode).");
 									}
-									else if ($this->sell($time, $lastTrade, null, 1/$currentPrice))
+									else if ($this->sell($time, $lastTrade, null, $currentPrice))
 									{
 										$tradeState = self::TRADE_STATE_SELL_WAIT_FOR_TRADES;
 									}
@@ -544,7 +550,7 @@ class EMABot extends \GalacticBot\Bot
 									$this->data->logWarning("Not selling based on old data (live mode).");
 								}
 								// Don't care about other conditions because they where previously met
-								else if ($this->sell($time))
+								else if ($this->sell($time, null, null, number_format($sample, 7, '.', '')))
 								{
 									$tradeState = self::TRADE_STATE_SELL_WAIT_FOR_TRADES;
 								}
