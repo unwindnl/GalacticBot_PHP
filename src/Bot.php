@@ -617,6 +617,16 @@ abstract class Bot
 	}
 
 	/**
+	* Optional method so processing could be delayed if needed
+	*
+	* @return boolean
+	*/
+	public function shouldWaitForProcessingTime(\GalacticBot\Time $time)
+	{
+		return false;
+	}
+
+	/**
 	* Calls the bots implemented method process() method after checking the timeframe hasnt been processed before.
 	*
 	* @return boolean
@@ -684,8 +694,12 @@ abstract class Bot
 		if ($state == self::STATE_PAUSED)
 			$this->shouldTrade = false;
 
-
 		if (!$time->isAfter($this->lastProcessingTime)) {
+			return false;
+		}
+
+		if ($this->shouldWaitForProcessingTime($time)) {
+			//$this->data->logVerbose("Delaying processing of timeframe (" . $time->toString() . ")");
 			return false;
 		}
 

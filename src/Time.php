@@ -89,6 +89,10 @@ class Time
 		return (float)$now->dateTime->format("U") - (float)$this->dateTime->format("U");
 	}
 
+	function getSeconds() {
+		return (float)$this->dateTime->format("s");
+	}
+
 	static function getDurationDescription(Time $from, Time $to) {
 	//	var_dump("from = ", $from->toString());
 	//	var_dump("to = ", $to->toString());
