@@ -19,7 +19,15 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 	static $mysqli = null;
 
-	function __construct($server, $user, $password, $database) {
+	public $tableNames_botData = "BotData";
+	public $tableNames_botTrade = "BotTrade";
+
+	function __construct($server, $user, $password, $database)
+	{
+	}
+
+	function connect2332()
+	{
 		self::$mysqli = new \mysqli($server, $user, $password, $database);
 
 		if (self::$mysqli->connect_errno) {
@@ -200,7 +208,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			// We'll have to get the last known price as that is still valid
 			$sql = "
 				SELECT	value
-				FROM	BotData
+				FROM	`{$this->tableNames_botData}`
 				WHERE	botID = " . $this->escapeSQLValue($this->bot->getSettings()->getID()) . "
 					AND	name = 'value'
 					AND	date <= " . $this->escapeSQLValue($time->getDateTime()->format("Y-m-d H:i:s")) . "
@@ -243,7 +251,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 		$sql = "
 			DELETE FROM
-					BotData
+					`{$this->tableNames_botData}`
 			WHERE	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 				AND	name <> 'value'
 				AND	name NOT LIKE 'setting_%'
@@ -256,7 +264,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 		$sql = "
 			DELETE FROM
-					BotTrade
+					`{$this->tableNames_botTrade}`
 			WHERE	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 		";
 		
@@ -275,7 +283,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	{
 		$sql = "
 			SELECT	*
-			FROM	BotTrade
+			FROM	`{$this->tableNames_botTrade}`
 			WHERE	state NOT IN ('" . \GalacticBot\Trade::STATE_CANCELLED . "', '" . \GalacticBot\Trade::STATE_REPLACED . "')
 				AND	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
@@ -299,7 +307,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	{
 		$sql = "
 			SELECT	*
-			FROM	BotTrade
+			FROM	`{$this->tableNames_botTrade}`
 			WHERE	state = '" . \GalacticBot\Trade::STATE_FILLED . "'
 				AND	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
@@ -329,8 +337,9 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			return $last;
 
 		$sql = "
+			# hier
 			SELECT	*
-			FROM	BotTrade
+			FROM	`{$this->tableNames_botTrade}`
 			WHERE	state = '" . \GalacticBot\Trade::STATE_FILLED . "'
 				AND	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
@@ -340,7 +349,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	
 		if (!$result = $this->query($sql))
 			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
-
+		
 		$row = $result->fetch_assoc();
 
 		if ($row && count($row)) {
@@ -361,7 +370,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 		$sql = "
 			SELECT	*
-			FROM	BotTrade
+			FROM	`{$this->tableNames_botTrade}`
 			WHERE	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 			ORDER BY
 					$order
@@ -388,7 +397,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 		$sql = "
 			SELECT	*
-			FROM	BotTrade
+			FROM	`{$this->tableNames_botTrade}`
 			WHERE	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 				AND	processedAt >= '" . self::escape_string($begin->toString()) . "'
 				AND	processedAt < '" . self::escape_string($end->toString()) . "'
@@ -416,7 +425,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 		$sql = "
 			SELECT	*
-			FROM	BotTrade
+			FROM	`{$this->tableNames_botTrade}`
 			WHERE	ID = " . $this->escapeSQLValue($ID) . "
 				AND	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 		";
@@ -450,7 +459,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$set = implode(",\n", $set);
 
 		$sql = "
-			UPDATE	BotTrade
+			UPDATE	`{$this->tableNames_botTrade}`
 			SET		$set
 			WHERE	ID = " . $this->escapeSQLValue($trade->getID()) . "
 		";
@@ -482,7 +491,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 
 		$sql = "
 			INSERT INTO
-				BotTrade
+				`{$this->tableNames_botTrade}`
 			(
 				$names
 			)
@@ -527,7 +536,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$this->data[$name] = $value;
 
 		$sql = "
-			REPLACE INTO BotData
+			REPLACE INTO `{$this->tableNames_botData}`
 			(
 				botID,
 				name,
@@ -550,7 +559,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	{
 		$sql = "
 			SELECT	value
-			FROM	BotData
+			FROM	`{$this->tableNames_botData}`
 			WHERE
 					botID	= '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 				AND	name	= '" . self::escape_string($name) . "'
@@ -574,7 +583,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	{
 		$sql = "
 			SELECT	value
-			FROM	BotData
+			FROM	`{$this->tableNames_botData}`
 			WHERE
 					botID	= '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 				AND	name	= '" . self::escape_string($name) . "'
@@ -601,7 +610,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	{
 		$sql = "
 			SELECT	value
-			FROM	BotData
+			FROM	`{$this->tableNames_botData}`
 			WHERE
 					botID	= '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 				AND	name	= '" . self::escape_string($name) . "'
@@ -627,7 +636,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	function setT(\GalacticBot\Time $time, $name, $value)
 	{
 		$sql = "
-			REPLACE INTO BotData
+			REPLACE INTO `{$this->tableNames_botData}`
 			(
 				botID,
 				name,
@@ -679,14 +688,14 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 		$sql = "
 			SELECT	name,
 					value
-			FROM	BotData
+			FROM	`{$this->tableNames_botData}`
 			WHERE	botID = '" . self::escape_string($this->bot->getSettings()->getID()) . "'
 				AND	date = '0000-00-00 00:00:00'
 		";
 		
 		if (!$result = $this->query($sql))
 		{
-			throw new \Exception("Mysql error #{self::$mysqli->errno}: {self::$mysqli->error}.");
+			throw new \Exception("Mysql error #" . self::$mysqli->errno . ": " . self::$mysqli->error);
 		}
 
 		while($row = $result->fetch_assoc())
@@ -721,7 +730,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 			$v = $this->data[$k];
 
 			$sql = "
-				REPLACE INTO BotData
+				REPLACE INTO `{$this->tableNames_botData}`
 				(
 					botID,
 					name,
@@ -752,7 +761,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 				$jv->samples = $v->getArray();
 
 				$sql = "
-					REPLACE INTO BotData
+					REPLACE INTO `{$this->tableNames_botData}`
 					(
 						botID,
 						name,
@@ -777,7 +786,7 @@ class MysqlDataInterface implements \GalacticBot\DataInterface
 	{
 	//	$start = microtime(true);
 
-	//	echo $sql;
+		//echo "[QUERY - MysqlDataInterface] " . $sql . "\n";
 		
 		$res = self::$mysqli->query($sql);
 

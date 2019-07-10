@@ -67,7 +67,18 @@ abstract class Bot
     )
 	{
 		$this->settings = $settings;
-		$this->data = $settings->getDataInterface();
+	}
+
+	protected function initializeData(Array $alternateTableNames = Array())
+	{
+		$this->data = $this->settings->getDataInterface();
+
+		if (count($alternateTableNames) && isset($alternateTableNames["BotData"]))
+			$this->data->tableNames_botData = $alternateTableNames["BotData"];
+
+		if (count($alternateTableNames) && isset($alternateTableNames["BotTrade"]))
+			$this->data->tableNames_botTrade = $alternateTableNames["BotTrade"];
+
 		$this->data->loadForBot($this);
 
 		$this->lastProcessingTime = null;
@@ -342,6 +353,8 @@ abstract class Bot
 			\GalacticHorizon\Client::createTestNetClient();
 		else
 			\GalacticHorizon\Client::createPublicClient();
+
+		$this->initializeData();
 	}
 
 	public function stream() {
