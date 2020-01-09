@@ -1,5 +1,7 @@
 <h1 align="center">GalacticBot</h1>
 
+<h2 align="">The PHP version of this experiment is no longer being developed. Check the newly developped nodejs version for our latest insights: https://github.com/unwindnl/GalacticBot</h2>
+
 GalacticBot is a PHP 7.x library for creating trade bots on the Stellar platform.
 
 With GalacticBot you can run bot(s) with our default trading algorithm or create and test your own custom trading algorithm(s).
@@ -23,7 +25,7 @@ Bots can be run locally on your machine or on a server.
 
 # Warning
 
-Please note that this library is still under development. It is not advisable to trade with large amounts at this stage.
+Please note that this library is still under development. We advice to use this software only on the Stellar testnet as this is experimental code created for R&D into blockchain technology.
 
 # Installation
 
